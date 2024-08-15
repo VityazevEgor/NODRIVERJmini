@@ -99,9 +99,27 @@ public class NoDriver{
         socketClient.sendCommand(json[1]);
     }
 
+    public void enterText(String text, String elementId){
+        List<String> jsons = cmdProcessor.genTextInput(text, elementId);
+        for (String json : jsons){
+            socketClient.sendCommand(json);
+        }
+    }
+
+    public void emulateKey(){
+        String[] jsons = cmdProcessor.genKeyInput();
+        socketClient.sendCommand(jsons[0]);
+        socketClient.sendCommand(jsons[1]);
+    }
+
     public void executeJS(String js){
         String json = cmdProcessor.genExecuteJs(js);
         socketClient.sendCommand(json);
+    }
+
+    public void testElementLocation(String elementId){
+        String js = cmdProcessor.getElementLocation.replace("ELEMENT_ID", elementId);
+        executeJS(js);
     }
     
     public void exit(){
