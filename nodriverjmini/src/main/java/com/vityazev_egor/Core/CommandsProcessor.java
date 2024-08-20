@@ -37,7 +37,7 @@ public class CommandsProcessor {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("id", id);
         request.put("method", method);
-        request.set("params", params);
+        if (params != null) request.set("params", params);
         id++;
 
         return request;
@@ -103,6 +103,40 @@ public class CommandsProcessor {
 
         // Объединяем запросы (если нужно отправить их отдельно, можно вернуть их по отдельности)
         return new String[]{jsonPressed, jsonReleased};
+    }
+
+    public String[] genTouchClick(int x, int y) {
+        // Создаем событие для касания (эквивалент mousePressed)
+        ObjectNode paramsTouchStart = objectMapper.createObjectNode();
+        paramsTouchStart.put("type", "mousePressed");
+        paramsTouchStart.put("x", x);
+        paramsTouchStart.put("y", y);
+        paramsTouchStart.put("button", "left");
+        paramsTouchStart.put("clickCount", 1); // Один клик
+    
+        ObjectNode requestTouchStart = buildBase("Input.emulateTouchFromMouseEvent", paramsTouchStart);
+        String jsonTouchStart = serializeNode(requestTouchStart);
+    
+        // Создаем событие для завершения касания (эквивалент mouseReleased)
+        ObjectNode paramsTouchEnd = objectMapper.createObjectNode();
+        paramsTouchEnd.put("type", "mouseReleased");
+        paramsTouchEnd.put("x", x);
+        paramsTouchEnd.put("y", y);
+        paramsTouchEnd.put("button", "left");
+    
+        ObjectNode requestTouchEnd = buildBase("Input.emulateTouchFromMouseEvent", paramsTouchEnd);
+        String jsonTouchEnd = serializeNode(requestTouchEnd);
+    
+        // Возвращаем запросы в массиве
+        return new String[]{jsonTouchStart, jsonTouchEnd};
+    }
+    
+    public String genWindowId(){
+        return serializeNode(buildBase("Browser.getWindowForTarget", null));
+    }
+
+    public String genLayoutMetrics(){
+        return serializeNode(buildBase("Page.getLayoutMetrics", null));
     }
 
     public String genMouseMove(int x, int y){

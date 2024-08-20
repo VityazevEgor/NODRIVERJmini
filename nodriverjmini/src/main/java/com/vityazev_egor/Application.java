@@ -1,5 +1,6 @@
 package com.vityazev_egor;
 
+import java.awt.Dimension;
 import java.io.IOException;
 
 import java.util.*;
@@ -8,6 +9,18 @@ public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         testLoadAndWait();
+    }
+
+    public static void testViewPort() throws IOException, InterruptedException{
+        NoDriver d = new NoDriver();
+        d.loadUrlAndWait("https://bing.com", 5);
+        Dimension dm = d.getViewPortSize();
+        System.out.println("Dimesion viewport= "+dm.getWidth() + ":"+dm.getHeight());
+        //Thread.sleep(5000);
+        Dimension dw =  d.getWindowPosition();
+        System.out.println("Dimesion browser windows position= "+dw.getWidth() + ":"+dw.getHeight());
+        
+        d.exit();
     }
 
     public static void testMouseMove() throws IOException, InterruptedException{
