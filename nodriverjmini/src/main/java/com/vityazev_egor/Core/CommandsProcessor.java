@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.awt.event.KeyEvent;
-
 public class CommandsProcessor {
     private Integer id = 1;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -107,6 +105,22 @@ public class CommandsProcessor {
         return new String[]{jsonPressed, jsonReleased};
     }
 
+    public String genMouseMove(int x, int y){
+        ObjectNode paramsPressed = objectMapper.createObjectNode();
+        paramsPressed.put("type", "mouseMoved");
+        paramsPressed.put("x", x);
+        paramsPressed.put("y", y);
+        paramsPressed.put("modifiers", 0);
+        paramsPressed.put("button", "none");
+        paramsPressed.put("buttons", 0);
+        paramsPressed.put("pointerType", "mouse");
+
+        ObjectNode requestPressed = buildBase("Input.dispatchMouseEvent", paramsPressed);
+        String jsonMoved = serializeNode(requestPressed);
+
+        return jsonMoved;
+    }
+
     public List<String> genTextInput(String text, String elementId){
         List<String> result = new ArrayList<>();
         String focusJs = String.format("var el = document.getElementById('%s');\nel.focus();", elementId);
@@ -178,7 +192,6 @@ public class CommandsProcessor {
                 throw new Exception("There is no result fild");
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
