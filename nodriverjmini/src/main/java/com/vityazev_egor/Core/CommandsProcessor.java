@@ -76,7 +76,7 @@ public class CommandsProcessor {
         return json;
     }
 
-    public String[] genMouseClick(int x, int y) {
+    public String[] genMouseClick(int x, int y, Double currentPageTime) {
 
         // Создаем событие mousePressed
         ObjectNode paramsPressed = objectMapper.createObjectNode();
@@ -86,6 +86,10 @@ public class CommandsProcessor {
         paramsPressed.put("button", "left");
         paramsPressed.put("buttons", 1); // Левую кнопку мыши
         paramsPressed.put("clickCount", 1); // Один клик
+        paramsPressed.put("pointerType", "mouse");
+        if (currentPageTime != null){
+            paramsPressed.put("timestamp", currentPageTime);
+        }
 
         ObjectNode requestPressed = buildBase("Input.dispatchMouseEvent", paramsPressed);
         String jsonPressed = serializeNode(requestPressed);
@@ -97,6 +101,11 @@ public class CommandsProcessor {
         paramsReleased.put("y", y);
         paramsReleased.put("button", "left");
         paramsReleased.put("buttons", 0); // Кнопка отпущена
+        paramsReleased.put("pointerType", "mouse");
+        if (currentPageTime != null){
+            Double releaseTime = currentPageTime + 95;
+            paramsReleased.put("timestamp", releaseTime);
+        }
 
         ObjectNode requestReleased = buildBase("Input.dispatchMouseEvent", paramsReleased);
         String jsonReleased = serializeNode(requestReleased);
@@ -105,30 +114,8 @@ public class CommandsProcessor {
         return new String[]{jsonPressed, jsonReleased};
     }
 
-    public String[] genTouchClick(int x, int y) {
-        // Создаем событие для касания (эквивалент mousePressed)
-        ObjectNode paramsTouchStart = objectMapper.createObjectNode();
-        paramsTouchStart.put("type", "mousePressed");
-        paramsTouchStart.put("x", x);
-        paramsTouchStart.put("y", y);
-        paramsTouchStart.put("button", "left");
-        paramsTouchStart.put("clickCount", 1); // Один клик
-    
-        ObjectNode requestTouchStart = buildBase("Input.emulateTouchFromMouseEvent", paramsTouchStart);
-        String jsonTouchStart = serializeNode(requestTouchStart);
-    
-        // Создаем событие для завершения касания (эквивалент mouseReleased)
-        ObjectNode paramsTouchEnd = objectMapper.createObjectNode();
-        paramsTouchEnd.put("type", "mouseReleased");
-        paramsTouchEnd.put("x", x);
-        paramsTouchEnd.put("y", y);
-        paramsTouchEnd.put("button", "left");
-    
-        ObjectNode requestTouchEnd = buildBase("Input.emulateTouchFromMouseEvent", paramsTouchEnd);
-        String jsonTouchEnd = serializeNode(requestTouchEnd);
-    
-        // Возвращаем запросы в массиве
-        return new String[]{jsonTouchStart, jsonTouchEnd};
+    public String[] genMouseClick(int x, int y){
+        return genMouseClick(x, y, null);
     }
     
     public String genWindowId(){

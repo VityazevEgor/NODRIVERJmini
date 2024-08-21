@@ -32,6 +32,7 @@ public class WebSocketClient {
         logger.info("Connected to the server");
     }
 
+    // TODO сделать тут что-то по типу общего пула сообщений и потом искать в нём нужный ответ по каким-то ключевым словам
     @OnMessage
     public void onMessage(String message) {
         logger.info("Received message: " + message);
@@ -58,6 +59,12 @@ public class WebSocketClient {
         catch (Exception ex){
             logger.warning("Error in sendCommand method");
             ex.printStackTrace();
+        }
+    }
+
+    public void sendCommand(String[] jsons){
+        for (String json : jsons) {
+            sendCommand(json);
         }
     }
 

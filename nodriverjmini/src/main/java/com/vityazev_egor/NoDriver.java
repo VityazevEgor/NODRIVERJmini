@@ -119,7 +119,8 @@ public class NoDriver{
         socketClient.sendCommand(cmdProcessor.genMouseMove(x, y));
     }
 
-    public Boolean loadUrlAndBypassCF(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
+    // works even if u use proxy
+    public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
         if (!loadResult) return false;
         String html = getHtml();
@@ -127,13 +128,6 @@ public class NoDriver{
             logger.warning("Detected CloudFlare");
             for (int j=0; j<5; j++){
                 xdoClick(180, 270);
-                // var points = HumanMouseMoveGen.generateCurve(0, 0, 190, 287, 50);
-                // for (Point p : points){
-                //     emualteMouseMove(p.x, p.y);
-                //     Shared.sleep(50);
-                // }
-                // //socketClient.sendCommand(cmdProcessor.genMouseMove(190, 287));
-                // emulateClick(190, 287);
                 Shared.sleep(2000);
             }
             return false;
@@ -142,6 +136,47 @@ public class NoDriver{
             logger.warning("There is no CloudFlare");
             return true;
         }
+    }
+
+    // works only if ur IP is not related to hsoting IPs
+    public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
+        Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
+        //socketClient.sendCommand(cmdProcessor.genMouseMove(190, 287));
+        if (!loadResult) return false;
+        String html = getHtml();
+        if (html.contains("ray-id")){
+            logger.warning("Detected CloudFlare");
+            //Shared.sleep(10000);
+            for (int tries = 0; tries<10; tries++){
+                // в начале получаем текущее время с момента загрузки страницы
+                Double currentPageTime = getCurrentPageTime();
+                if (currentPageTime != null){
+                    socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime));
+                }
+                else{
+                    logger.warning("Can't get currentPage time");
+                }
+                Shared.sleep(2000);
+            }
+            return false;
+        }
+        else{
+            logger.warning("There is no CloudFlare");
+            return true;
+        }
+    }
+
+    @Nullable
+    public Double getCurrentPageTime(){
+        String json = cmdProcessor.genExecuteJs("performance.now()");
+        socketClient.sendCommandAsync(json);
+        Double result = null;
+        String response = cmdProcessor.getJsResult(socketClient.waitResult(2));
+        if (response !=null){
+            result = Double.parseDouble(response);
+        }
+
+        return result;
     }
 
     @Nullable

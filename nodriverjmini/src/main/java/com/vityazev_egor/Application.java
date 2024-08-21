@@ -40,7 +40,7 @@ public class Application {
         else{
             System.err.println("Can't load site");
         }
-        result = d.loadUrlAndBypassCF("https://forum.cfcybernews.eu", 5, 20);
+        result = d.loadUrlAndBypassCFCDP("https://forum.cfcybernews.eu", 5, 20);
         if (result){
             System.out.println("Bypassed CloudFlare");
         }
