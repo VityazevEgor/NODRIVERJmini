@@ -1,6 +1,10 @@
 package com.vityazev_egor.Core;
 
 public class WaitTask {
+    public static abstract class IWaitTask {
+        public abstract Boolean execute();
+    }
+
     private final IWaitTask task;
     public WaitTask(IWaitTask task){
         this.task = task;

@@ -2,6 +2,7 @@ package com.vityazev_egor.Core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -41,6 +42,15 @@ public class CommandsProcessor {
         id++;
 
         return request;
+    }
+
+    public Integer getIdOfLastMessage(){
+        if (id>1){
+            return id - 1;
+        }
+        else{
+            return 1;
+        }
     }
 
     private String serializeNode(ObjectNode node){
@@ -214,6 +224,16 @@ public class CommandsProcessor {
             }
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public Optional<Integer> parseIdFromCommand(String json){
+        try{
+            JsonNode command = objectMapper.readTree(json);
+            return Optional.of(Integer.parseInt(command.get("id").asText()));
+        }
+        catch (Exception ex){
+            return Optional.empty();
         }
     }
 

@@ -3,6 +3,7 @@ package com.vityazev_egor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -10,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
-import com.vityazev_egor.Core.IWaitTask;
+import com.vityazev_egor.Core.WaitTask.IWaitTask;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebSocketClient;
@@ -103,12 +104,11 @@ public class NoDriver{
 
             @Override
             public Boolean execute() {
-                socketClient.sendCommandAsync(cmdProcessor.genExecuteJs("document.readyState"));
-                String response = socketClient.waitResult(2);
-                String result = cmdProcessor.getJsResult(response);
-                if (result == null) return false;
+                Optional<String> response = socketClient.sendAndWaitResult(2, cmdProcessor.genExecuteJs("document.readyState"));
+                if (!response.isPresent()) return false;
+                String jsResult = cmdProcessor.getJsResult(response.get());
 
-                return result.equals("complete");
+                return jsResult.equals("complete");
             }
             
         });
@@ -123,14 +123,30 @@ public class NoDriver{
     public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
         if (!loadResult) return false;
-        String html = getHtml();
-        if (html.contains("ray-id")){
+
+        var html = getHtml();
+        if (html.isPresent() && html.get().contains("ray-id")){
             logger.warning("Detected CloudFlare");
-            for (int j=0; j<5; j++){
-                xdoClick(180, 270);
-                Shared.sleep(2000);
-            }
-            return false;
+            var task = new WaitTask(
+                new IWaitTask() {
+
+                    @Override
+                    public Boolean execute() {
+                        var currentHtml = getHtml();
+                        if (!currentHtml.isPresent()) return false;
+
+                        if (currentHtml.get().contains("ray-id")){
+                            xdoClick(180, 270);
+                            return false;
+                        }
+                        else{
+                            return true;
+                        }
+                    }
+                    
+                }
+            );
+            return task.execute(cfBypassTimeOutSeconds, 1000);
         }
         else{
             logger.warning("There is no CloudFlare");
@@ -143,15 +159,15 @@ public class NoDriver{
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
         //socketClient.sendCommand(cmdProcessor.genMouseMove(190, 287));
         if (!loadResult) return false;
-        String html = getHtml();
-        if (html.contains("ray-id")){
+        var html = getHtml();
+        if (html.isPresent() && html.get().contains("ray-id")){
             logger.warning("Detected CloudFlare");
             //Shared.sleep(10000);
             for (int tries = 0; tries<10; tries++){
                 // в начале получаем текущее время с момента загрузки страницы
-                Double currentPageTime = getCurrentPageTime();
-                if (currentPageTime != null){
-                    socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime));
+                var currentPageTime = getCurrentPageTime();
+                if (currentPageTime.isPresent()){
+                    socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
                 }
                 else{
                     logger.warning("Can't get currentPage time");
@@ -166,52 +182,62 @@ public class NoDriver{
         }
     }
 
-    @Nullable
-    public Double getCurrentPageTime(){
+    public Optional<Double> getCurrentPageTime(){
+        
         String json = cmdProcessor.genExecuteJs("performance.now()");
-        socketClient.sendCommandAsync(json);
-        Double result = null;
-        String response = cmdProcessor.getJsResult(socketClient.waitResult(2));
-        if (response !=null){
-            result = Double.parseDouble(response);
-        }
+        Optional<String> response = socketClient.sendAndWaitResult(2, json);
 
-        return result;
+        if (response.isPresent()){
+            String result = cmdProcessor.getJsResult(response.get());
+            return Optional.of(Double.parseDouble(result));
+        }else{
+            return Optional.empty();
+        }
     }
 
-    @Nullable
-    public String getHtml(){
+
+    public Optional<String> getHtml(){
         String json = cmdProcessor.genExecuteJs("document.documentElement.outerHTML");
-        socketClient.sendCommandAsync(json);
-        return cmdProcessor.getJsResult(socketClient.waitResult(2));
-    }
-
-    @Nullable
-    public String getTitle(){
-        String json = cmdProcessor.genExecuteJs("document.title");
-        socketClient.sendCommandAsync(json);
-        String result = socketClient.waitResult(2);
-        return cmdProcessor.getJsResult(result);
-    }
-
-    @Nullable
-    public Dimension getViewPortSize(){
-        String[] jsons = new String[]{
-            cmdProcessor.genExecuteJs("window.innerWidth"),
-            cmdProcessor.genExecuteJs("window.innerHeight")
-        };
-        String[] result = new String[2];
-        for (int i=0; i<jsons.length; i++){
-            socketClient.sendCommandAsync(jsons[i]);
-            result[i] = cmdProcessor.getJsResult(socketClient.waitResult(2));
-        }
-        if (result[0] != null && result[1] != null){
-            return new Dimension(Integer.parseInt(result[0]), Integer.parseInt(result[1]));
+        var response = socketClient.sendAndWaitResult(2, json);
+        if (response.isPresent()){
+            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
         }
         else{
-            return null;
+            return Optional.empty();
         }
     }
+
+    public Optional<String> getTitle(){
+        String json = cmdProcessor.genExecuteJs("document.title");
+        var response = socketClient.sendAndWaitResult(2, json);
+        if (response.isPresent()){
+            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
+        }
+        else{
+            return Optional.empty();
+        }
+    }
+
+    public Optional<Dimension> getViewPortSize() {
+        // Генерация JSON для выполнения JavaScript и получения ширины и высоты окна
+        String jsonWidth = cmdProcessor.genExecuteJs("window.innerWidth");
+        String jsonHeight = cmdProcessor.genExecuteJs("window.innerHeight");
+    
+        // Отправка команды и ожидание результата для ширины
+        var responseWidth = socketClient.sendAndWaitResult(2, jsonWidth);
+        String widthResult = responseWidth.isPresent() ? cmdProcessor.getJsResult(responseWidth.get()) : null;
+    
+        // Отправка команды и ожидание результата для высоты
+        var responseHeight = socketClient.sendAndWaitResult(2, jsonHeight);
+        String heightResult = responseHeight.isPresent() ? cmdProcessor.getJsResult(responseHeight.get()) : null;
+    
+        // Если оба результата присутствуют, создаем и возвращаем Optional<Dimension>
+        if (widthResult != null && heightResult != null) {
+            return Optional.of(new Dimension(Integer.parseInt(widthResult), Integer.parseInt(heightResult)));
+        } else {
+            return Optional.empty();
+        }
+    }    
 
     public void emulateClick(Integer x, Integer y){
         String[] json = cmdProcessor.genMouseClick(x, y);
@@ -219,12 +245,14 @@ public class NoDriver{
         socketClient.sendCommand(json[1]);
     }
 
+    // TODO когда нету плашки с предложеним установить хром как браузер по умолчанию, этот метод правильно получает размеры с погрешностью в 4 пикселя
+    // TODO возмоно стоит перейти на использование JCEF Simple App вместо полноценного браузера
     public void xdoClick(Integer x, Integer y) {
         // Получаем позицию окна на экране
         Dimension windowPosition = getWindowPosition(); // Позиция окна на экране (начало отчёта координат)
         
         // Получаем размер видимой части браузера (viewport)
-        Dimension viewPortSize = getViewPortSize(); // Размер viewport (например, 1236x877)
+        Dimension viewPortSize = getViewPortSize().get(); // Размер viewport (например, 1236x877)
         
         // Определите размеры окна браузера, которые вы можете использовать для расчета
         Dimension browserWindowSize = new Dimension(1280, 1060); // Размер окна браузера
@@ -233,13 +261,6 @@ public class NoDriver{
         // Интерфейс браузера — это то, что находится за пределами видимой части браузера
         double interfaceHeight = browserWindowSize.getHeight() - viewPortSize.getHeight(); // должно быть +-142
         double interfaceWidth = browserWindowSize.getWidth() - viewPortSize.getWidth();
-        
-        // Размер экрана, который используется ydotool (фактически установленный размер)
-        Dimension ydotoolScreenSize = new Dimension(1030, 580); // Размер экрана, используемый ydotool
-
-        // Масштабный коэффициент для преобразования координат из размера экрана ydotool в реальный размер
-        double scaleX = (double) ydotoolScreenSize.width / 1920;
-        double scaleY = (double) ydotoolScreenSize.height / 1080;
         
         // Проверьте полученные значения для отладки
         logger.warning("Interface height = " + interfaceHeight); 
@@ -252,14 +273,9 @@ public class NoDriver{
     
         // Расчет координат клика на экране
         logger.warning(String.format("Screen click pos %d %d", screenX, screenY));
-
-        // Преобразуем координаты в координаты для ydotool
-        Integer ydotoolX = (int) (screenX * scaleX);
-        Integer ydotoolY = (int) (screenY * scaleY);
-
     
         // Формируем команду для клика с помощью xdotool
-        String moveCmd = String.format("ydotool mousemove %d %d", ydotoolX, ydotoolY);
+        String moveCmd = String.format("xdotool mousemove %d %d", screenX, screenY);
         String clickCmd = "xdotool click 1";
         
         // Выполняем команды
@@ -289,7 +305,7 @@ public class NoDriver{
 
     @Nullable
     public Dimension getWindowPosition() {
-        String currentTitle = getTitle();
+        String currentTitle = getTitle().get();
         // Команда для поиска окон по процессу Chrome
         String searchCmd = "xdotool search --pid " + chrome.pid();
         

@@ -1,26 +1,12 @@
 package com.vityazev_egor;
 
-import java.awt.Dimension;
 import java.io.IOException;
-
-import java.util.*;
+import java.util.Scanner;
 
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        testLoadAndWait();
-    }
-
-    public static void testViewPort() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
-        d.loadUrlAndWait("https://bing.com", 5);
-        Dimension dm = d.getViewPortSize();
-        System.out.println("Dimesion viewport= "+dm.getWidth() + ":"+dm.getHeight());
-        //Thread.sleep(5000);
-        Dimension dw =  d.getWindowPosition();
-        System.out.println("Dimesion browser windows position= "+dw.getWidth() + ":"+dw.getHeight());
-        
-        d.exit();
+        testCloudFlareBypass();
     }
 
     public static void testMouseMove() throws IOException, InterruptedException{
@@ -31,23 +17,22 @@ public class Application {
         d.exit();
     }
 
-    public static void testLoadAndWait() throws IOException, InterruptedException{
+    public static void testViewPort(){
+
+    }
+
+    @SuppressWarnings("unused")
+    private static void testCloudFlareBypass() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
-        Boolean result = d.loadUrlAndWait("https://bing.com", 5);
-        if (result){
-            System.out.println("Loaded site!");
-        }
-        else{
-            System.err.println("Can't load site");
-        }
-        result = d.loadUrlAndBypassCFCDP("https://forum.cfcybernews.eu", 5, 20);
+        var result = d.loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 20);
         if (result){
             System.out.println("Bypassed CloudFlare");
         }
         else{
             System.err.println("Can't bypass CloudFlare");
         }
-        //Thread.sleep(10000);
+        Scanner sc = new Scanner(System.in);
+        sc.nextLine();
         d.exit();
     }
 

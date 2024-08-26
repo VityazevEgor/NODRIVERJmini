@@ -1,9 +1,9 @@
 package com.vityazev_egor.Core;
 
 import java.net.URI;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import org.jetbrains.annotations.Nullable;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import com.vityazev_egor.Core.WaitTask.IWaitTask;
 
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
@@ -19,7 +19,27 @@ import jakarta.websocket.WebSocketContainer;
 public class WebSocketClient {
     private Session session;
     private final CustomLogger logger = new CustomLogger(WebSocketClient.class.getName());
-    private CompletableFuture<String> commandResult = null;
+    private final CopyOnWriteArrayList<SocketMessage> messages = new CopyOnWriteArrayList<>();
+    private final CommandsProcessor cmdProcessor = new CommandsProcessor();
+
+    public enum messageType{
+        undefinded,
+        jsResult
+    }
+
+    private class SocketMessage{
+        public messageType type;
+        public String message;
+        public long creationTime;
+        public Integer id;
+
+        public SocketMessage(Integer id, messageType type, String message){
+            this.type = type;
+            this.message = message;
+            this.creationTime = System.currentTimeMillis();
+            this.id = id;
+        }
+    }
 
     public WebSocketClient(String url) throws Exception {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
@@ -32,12 +52,26 @@ public class WebSocketClient {
         logger.info("Connected to the server");
     }
 
-    // TODO сделать тут что-то по типу общего пула сообщений и потом искать в нём нужный ответ по каким-то ключевым словам
     @OnMessage
     public void onMessage(String message) {
-        logger.info("Received message: " + message);
-        if (commandResult != null){
-            commandResult.complete(message);
+
+        messageType type = detectMessageType(message);
+        Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(message);
+        if (messageId.isPresent()){
+            messages.add(new SocketMessage(messageId.get(), type, message));
+        }
+        logger.info("Received message with type = " +type +", content = " + message);
+        if (messages.size()>=10){
+            messages.remove(0);
+        }
+    }
+
+    private messageType detectMessageType(String message){
+        if (cmdProcessor.getJsResult(message) != null){
+            return messageType.jsResult;
+        }
+        else{
+            return messageType.undefinded;
         }
     }
 
@@ -68,23 +102,27 @@ public class WebSocketClient {
         }
     }
 
-    public void sendCommandAsync(String json){
-        commandResult = new CompletableFuture<String>();
-        sendCommand(json);
-    }
+    public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
+        Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(json);
+        if (!messageId.isPresent()) return Optional.empty();
 
-    @Nullable
-    public String waitResult(Integer timeOutSeconds){
-        if (commandResult != null){
-            try {
-                String rawResult = commandResult.get(timeOutSeconds, TimeUnit.SECONDS);
-                commandResult = null;
-                return rawResult;
-            } catch (Exception ex) {
-                ex.printStackTrace();
+        var task = new WaitTask(
+            new IWaitTask() {
+                @Override
+                public Boolean execute() {
+                    var filtered = messages.stream().anyMatch(m->m.id == messageId.get());
+                    return filtered;
+                } 
             }
+        );
+        sendCommand(json);
+        var result = task.execute(timeOutSeconds, 50);
+        if (result){
+            return Optional.of(messages.stream().filter(m-> m.id == messageId.get()).findFirst().get().message);
         }
-        return null;
+        else{
+            return Optional.empty();
+        }
     }
     
 }
