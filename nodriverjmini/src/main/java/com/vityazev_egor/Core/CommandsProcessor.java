@@ -171,6 +171,19 @@ public class CommandsProcessor {
         return result;
     }
 
+    public String genCaptureScreenshot(){
+        ObjectNode params = objectMapper.createObjectNode();
+        params.put("format", "png");
+
+        ObjectNode request = buildBase("Page.captureScreenshot", params);
+
+        return serializeNode(request);
+    }
+
+    public Optional<String> getScreenshotData(String response){
+        return Optional.ofNullable(getJsResult(response, "data"));
+    }
+
     public String[] genKeyInput(){
         ObjectNode paramsChar = objectMapper.createObjectNode();
         paramsChar.put("type", "keyDown");

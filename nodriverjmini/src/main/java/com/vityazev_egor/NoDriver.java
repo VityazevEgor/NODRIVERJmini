@@ -1,10 +1,8 @@
 package com.vityazev_egor;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
+import org.apache.commons.imaging.Imaging;
 import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +19,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import java.awt.*;
+import java.awt.image.*;
+import java.util.*;
+import java.nio.file.*;
+import java.awt.Dimension;
 
 public class NoDriver{
     private Process chrome;
@@ -34,6 +35,7 @@ public class NoDriver{
 
     public NoDriver() throws IOException{
 
+        // TODO возможно стоит перейти на chromium-browser
         // запускаем браузер и перехватываем вывод в консоли
         ProcessBuilder brower = new ProcessBuilder(
             "google-chrome", 
@@ -42,6 +44,7 @@ public class NoDriver{
             "--disable-gpu",
             "--window-size=1280,1060",
             "--no-first-run",
+            "--no-default-browser-check",
             "--user-data-dir=nodriverData"
         );
         brower.redirectErrorStream(true);
@@ -296,6 +299,27 @@ public class NoDriver{
         String[] jsons = cmdProcessor.genKeyInput();
         socketClient.sendCommand(jsons[0]);
         socketClient.sendCommand(jsons[1]);
+    }
+
+    public Optional<BufferedImage> captureScreenshot(Path screenSavePath){
+        var response = socketClient.sendAndWaitResult(2, cmdProcessor.genCaptureScreenshot());
+        if (!response.isPresent()) return Optional.empty();
+        var baseData = cmdProcessor.getScreenshotData(response.get());
+        if (!baseData.isPresent()) return Optional.empty();
+        
+        byte[] imageBytes = Base64.getDecoder().decode(baseData.get());
+        try {
+            if (screenSavePath != null) Files.write(screenSavePath, imageBytes);
+            // вот тут я преобразую байты картинки в формате PNG
+            return Optional.of( Imaging.getBufferedImage(imageBytes));
+        } catch (Exception e) {
+            logger.warning("Can't convert bytes to BufferedImage");
+            return Optional.empty();
+        }
+    }
+
+    public Optional<BufferedImage> captureScreenshot(){
+        return captureScreenshot(null);
     }
 
     public void executeJS(String js){

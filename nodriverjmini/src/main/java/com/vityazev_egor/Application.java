@@ -2,11 +2,23 @@ package com.vityazev_egor;
 
 import java.io.IOException;
 import java.util.Scanner;
+import javax.imageio.*;
+import java.nio.file.*;
+import java.nio.file.Path;
 
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        testCloudFlareBypass();
+        testSreenShot();
+    }
+
+    public static void testSreenShot() throws IOException, InterruptedException{
+        NoDriver d = new NoDriver();
+        d.loadUrlAndWait("https://ya.ru", 10);
+        var image = d.captureScreenshot();
+        Thread.sleep(2000);
+        ImageIO.write(image.get(), "png", Path.of("test.png").toFile());
+        d.exit();
     }
 
     public static void testMouseMove() throws IOException, InterruptedException{
@@ -34,6 +46,7 @@ public class Application {
         Scanner sc = new Scanner(System.in);
         sc.nextLine();
         d.exit();
+        sc.close();
     }
 
     public void majorTest() throws InterruptedException, IOException{
