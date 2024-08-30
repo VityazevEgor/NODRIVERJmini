@@ -1,6 +1,7 @@
 package com.vityazev_egor.Core;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.vityazev_egor.Core.WaitTask.IWaitTask;
@@ -22,21 +23,13 @@ public class WebSocketClient {
     private final CopyOnWriteArrayList<SocketMessage> messages = new CopyOnWriteArrayList<>();
     private final CommandsProcessor cmdProcessor = new CommandsProcessor();
 
-    public enum messageType{
-        undefinded,
-        jsResult
-    }
 
     private class SocketMessage{
-        public messageType type;
         public String message;
-        public long creationTime;
         public Integer id;
 
-        public SocketMessage(Integer id, messageType type, String message){
-            this.type = type;
+        public SocketMessage(Integer id, String message){
             this.message = message;
-            this.creationTime = System.currentTimeMillis();
             this.id = id;
         }
     }
@@ -55,23 +48,17 @@ public class WebSocketClient {
     @OnMessage
     public void onMessage(String message) {
 
-        messageType type = detectMessageType(message);
         Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(message);
         if (messageId.isPresent()){
-            messages.add(new SocketMessage(messageId.get(), type, message));
+            messages.add(new SocketMessage(messageId.get(), message));
         }
-        logger.info("Received message with type = " +type +", content = " + message);
+        String messageCut = message;
+        if (messageCut.length() > 150){
+            messageCut = messageCut.substring(0, 150);
+        }
+        logger.info("Received message with type content = " + messageCut);
         if (messages.size()>=10){
             messages.remove(0);
-        }
-    }
-
-    private messageType detectMessageType(String message){
-        if (cmdProcessor.getJsResult(message) != null){
-            return messageType.jsResult;
-        }
-        else{
-            return messageType.undefinded;
         }
     }
 
@@ -98,6 +85,12 @@ public class WebSocketClient {
 
     public void sendCommand(String[] jsons){
         for (String json : jsons) {
+            sendCommand(json);
+        }
+    }
+
+    public void sendCommand(List<String> jsons){
+        for (String json : jsons){
             sendCommand(json);
         }
     }

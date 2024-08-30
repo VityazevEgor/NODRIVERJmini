@@ -20,4 +20,9 @@ public class CustomLogger {
     public void warning(String message){
         logger.warning(ANSI_YELLOW + message + ANSI_RESET);
     }
+
+    public void error(String message, Exception ex){
+        logger.warning(ANSI_RED + message + ANSI_RESET);
+        ex.printStackTrace();
+    }
 }

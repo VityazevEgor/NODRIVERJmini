@@ -16,7 +16,6 @@ class ApplicationTest {
     @Test
     void testViewPort() throws IOException{
         NoDriver d = new NoDriver();
-        //d.loadUrlAndWait("https://bing.com", 5);
         var dm = d.getViewPortSize();
         System.out.println("Dimesion viewport= "+dm.get().getWidth() + ":"+dm.get().getHeight());
         d.exit();
@@ -31,5 +30,14 @@ class ApplicationTest {
         d.exit();
         assertTrue(result);
         assertTrue(result2);
+    }
+
+    @Test
+    void testJs() throws IOException{
+        NoDriver d = new NoDriver();
+        var title = d.getTitle();
+        d.exit();
+        assertTrue(title.isPresent());
+        System.out.println(title.get());
     }
 }

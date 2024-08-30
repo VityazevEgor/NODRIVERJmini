@@ -10,6 +10,8 @@ import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.WaitTask.IWaitTask;
+import com.vityazev_egor.Core.WebElements.By;
+import com.vityazev_egor.Core.WebElements.WebElement;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebSocketClient;
@@ -23,6 +25,7 @@ import java.awt.image.*;
 import java.util.*;
 import java.nio.file.*;
 import java.awt.Dimension;
+import java.awt.Point;
 
 public class NoDriver{
     private Process chrome;
@@ -33,11 +36,11 @@ public class NoDriver{
 
     public static Boolean isInit = false;
 
-    public NoDriver() throws IOException{
+    public NoDriver(String socks5Proxy) throws IOException{
 
         // TODO возможно стоит перейти на chromium-browser
         // запускаем браузер и перехватываем вывод в консоли
-        ProcessBuilder brower = new ProcessBuilder(
+        ProcessBuilder browser = new ProcessBuilder(
             "google-chrome", 
             "--remote-debugging-port=9222", 
             "--remote-allow-origins=*", 
@@ -47,8 +50,12 @@ public class NoDriver{
             "--no-default-browser-check",
             "--user-data-dir=nodriverData"
         );
-        brower.redirectErrorStream(true);
-        chrome = brower.start();
+        if (socks5Proxy != null) {
+            // Добавляем аргумент для прокси без кавычек вокруг URL
+            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        }
+        browser.redirectErrorStream(true);
+        chrome = browser.start();
         consoleListener = new Thread(new ConsoleListener(chrome));
         consoleListener.start();
         
@@ -59,6 +66,11 @@ public class NoDriver{
 
         findNewTab();
     }
+
+    public NoDriver() throws IOException{
+        this(null);
+    }
+
 
     // find web socket url to control new tab of chrome
     private void findNewTab(){
@@ -128,7 +140,9 @@ public class NoDriver{
         if (!loadResult) return false;
 
         var html = getHtml();
-        if (html.isPresent() && html.get().contains("ray-id")){
+        if (!html.isPresent()) return false;
+
+        if (html.get().contains("ray-id")){
             logger.warning("Detected CloudFlare");
             var task = new WaitTask(
                 new IWaitTask() {
@@ -157,27 +171,40 @@ public class NoDriver{
         }
     }
 
+    // socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
+
     // works only if ur IP is not related to hsoting IPs
     public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
-        //socketClient.sendCommand(cmdProcessor.genMouseMove(190, 287));
         if (!loadResult) return false;
+
         var html = getHtml();
-        if (html.isPresent() && html.get().contains("ray-id")){
+        if (!html.isPresent()) return false;
+
+        if (html.get().contains("ray-id")){
             logger.warning("Detected CloudFlare");
-            //Shared.sleep(10000);
-            for (int tries = 0; tries<10; tries++){
-                // в начале получаем текущее время с момента загрузки страницы
-                var currentPageTime = getCurrentPageTime();
-                if (currentPageTime.isPresent()){
-                    socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
+            var task = new WaitTask(
+                new IWaitTask() {
+
+                    @Override
+                    public Boolean execute() {
+                        var currentHtml = getHtml();
+                        if (!currentHtml.isPresent()) return false;
+                        var currentPageTime = getCurrentPageTime();
+                        if (!currentPageTime.isPresent()) return false;
+
+                        if (currentHtml.get().contains("ray-id")){
+                            socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
+                            return false;
+                        }
+                        else{
+                            return true;
+                        }
+                    }
+                    
                 }
-                else{
-                    logger.warning("Can't get currentPage time");
-                }
-                Shared.sleep(2000);
-            }
-            return false;
+            );
+            return task.execute(cfBypassTimeOutSeconds, 1000);
         }
         else{
             logger.warning("There is no CloudFlare");
@@ -186,39 +213,22 @@ public class NoDriver{
     }
 
     public Optional<Double> getCurrentPageTime(){
-        
-        String json = cmdProcessor.genExecuteJs("performance.now()");
-        Optional<String> response = socketClient.sendAndWaitResult(2, json);
-
-        if (response.isPresent()){
-            String result = cmdProcessor.getJsResult(response.get());
-            return Optional.of(Double.parseDouble(result));
-        }else{
+        var sDouble = getJSResult("performance.now()");
+        if (sDouble.isPresent()){
+            return Optional.of(Double.parseDouble(sDouble.get()));
+        }
+        else{
             return Optional.empty();
         }
     }
 
 
     public Optional<String> getHtml(){
-        String json = cmdProcessor.genExecuteJs("document.documentElement.outerHTML");
-        var response = socketClient.sendAndWaitResult(2, json);
-        if (response.isPresent()){
-            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
-        }
-        else{
-            return Optional.empty();
-        }
+        return getJSResult("document.documentElement.outerHTML");
     }
 
     public Optional<String> getTitle(){
-        String json = cmdProcessor.genExecuteJs("document.title");
-        var response = socketClient.sendAndWaitResult(2, json);
-        if (response.isPresent()){
-            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
-        }
-        else{
-            return Optional.empty();
-        }
+        return getJSResult("document.title");
     }
 
     public Optional<Dimension> getViewPortSize() {
@@ -248,11 +258,25 @@ public class NoDriver{
         socketClient.sendCommand(json[1]);
     }
 
+    public void emulateClick(Double x, Double y){
+        emulateClick(x.intValue(), y.intValue());
+    }
+
+    public void emulateClick(WebElement element){
+        var position = element.getPosition(this);
+        if (!position.isPresent()){
+            logger.warning("Can't get element position to click");
+            return;
+        }
+
+        emulateClick(position.get().getX(), position.get().getY());
+    }
+
     // TODO когда нету плашки с предложеним установить хром как браузер по умолчанию, этот метод правильно получает размеры с погрешностью в 4 пикселя
     // TODO возмоно стоит перейти на использование JCEF Simple App вместо полноценного браузера
     public void xdoClick(Integer x, Integer y) {
         // Получаем позицию окна на экране
-        Dimension windowPosition = getWindowPosition(); // Позиция окна на экране (начало отчёта координат)
+        Point windowPosition = getWindowPosition(); // Позиция окна на экране (начало отчёта координат)
         
         // Получаем размер видимой части браузера (viewport)
         Dimension viewPortSize = getViewPortSize().get(); // Размер viewport (например, 1236x877)
@@ -271,8 +295,8 @@ public class NoDriver{
     
         // Координаты клика на экране:
         // Позиция окна на экране + отступы из-за интерфейса
-        Integer screenX = (int) windowPosition.getWidth() + (int) interfaceWidth + x;
-        Integer screenY = (int) windowPosition.getHeight() + (int) interfaceHeight + y;
+        Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x;
+        Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y;
     
         // Расчет координат клика на экране
         logger.warning(String.format("Screen click pos %d %d", screenX, screenY));
@@ -293,6 +317,12 @@ public class NoDriver{
         for (String json : jsons){
             socketClient.sendCommand(json);
         }
+    }
+
+    public void enterText(WebElement element, String text){
+        element.getFocus(this);
+        var list = cmdProcessor.genTextInput(text);
+        socketClient.sendCommand(list);
     }
 
     public void emulateKey(){
@@ -327,8 +357,23 @@ public class NoDriver{
         socketClient.sendCommand(json);
     }
 
+    public Optional<String> getJSResult(String js){
+        String json = cmdProcessor.genExecuteJs(js);
+        var response = socketClient.sendAndWaitResult(2, json);
+        if (response.isPresent()){
+            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
+        }
+        else{
+            return Optional.empty();
+        }
+    }
+
+    public void clearCookies(){
+        socketClient.sendCommand(cmdProcessor.genClearCookies());
+    }
+
     @Nullable
-    public Dimension getWindowPosition() {
+    public Point getWindowPosition() {
         String currentTitle = getTitle().get();
         // Команда для поиска окон по процессу Chrome
         String searchCmd = "xdotool search --pid " + chrome.pid();
@@ -348,7 +393,7 @@ public class NoDriver{
             
             if (windowTitle.contains(currentTitle)) {
                 matchingId = windowId;
-                break; // Найдено подходящее окно, можем завершить поиск
+                break; // Найдено подходящее окно, ливаем
             }
         }
         
@@ -367,16 +412,20 @@ public class NoDriver{
         String position = geometryOutput.replace("  Position: ", "").replace(" (screen: 0)", "");
         System.out.println(position);
         
-        // Преобразуем строку позиции в объект Dimension
+        // Преобразуем строку позиции в объект Point
         String[] parts = position.split(",");
         int x = Integer.parseInt(parts[0]);
         int y = Integer.parseInt(parts[1]);
-        return new Dimension(x, y);
+        return new Point(x, y);
     }    
 
     public void testElementLocation(String elementId){
         String js = cmdProcessor.getElementLocation.replace("ELEMENT_ID", elementId);
         executeJS(js);
+    }
+
+    public WebElement findElement(By by){
+        return new WebElement(by);
     }
     
     public void exit(){

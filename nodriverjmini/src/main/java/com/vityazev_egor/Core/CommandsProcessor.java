@@ -154,8 +154,10 @@ public class CommandsProcessor {
 
     public List<String> genTextInput(String text, String elementId){
         List<String> result = new ArrayList<>();
-        String focusJs = String.format("var el = document.getElementById('%s');\nel.focus();", elementId);
-        result.add(genExecuteJs(focusJs));
+        if (elementId != null){
+            String focusJs = String.format("var el = document.getElementById('%s');\nel.focus();", elementId);
+            result.add(genExecuteJs(focusJs));
+        }
 
         for (char c: text.toCharArray()){
             // Обработчик для символа (char)
@@ -171,6 +173,10 @@ public class CommandsProcessor {
         return result;
     }
 
+    public List<String> genTextInput(String text){
+        return genTextInput(text, null);
+    }
+
     public String genCaptureScreenshot(){
         ObjectNode params = objectMapper.createObjectNode();
         params.put("format", "png");
@@ -178,6 +184,10 @@ public class CommandsProcessor {
         ObjectNode request = buildBase("Page.captureScreenshot", params);
 
         return serializeNode(request);
+    }
+
+    public String genClearCookies(){
+        return serializeNode( buildBase("Network.clearBrowserCookies", null));
     }
 
     public Optional<String> getScreenshotData(String response){
