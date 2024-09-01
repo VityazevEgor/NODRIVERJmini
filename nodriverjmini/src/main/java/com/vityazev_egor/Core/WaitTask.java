@@ -1,5 +1,6 @@
 package com.vityazev_egor.Core;
 
+// TODO избавиться от дополнительного абстрактного класса. Можно просто сделать сам класс WaitTask абстракным с одним методом, который надо переоределить
 public class WaitTask {
     public static abstract class IWaitTask {
         public abstract Boolean execute();

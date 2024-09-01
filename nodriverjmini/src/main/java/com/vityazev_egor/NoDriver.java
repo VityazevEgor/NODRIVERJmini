@@ -1,6 +1,17 @@
 package com.vityazev_egor;
 
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.imaging.Imaging;
 import org.jetbrains.annotations.Nullable;
@@ -9,23 +20,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
-import com.vityazev_egor.Core.WaitTask.IWaitTask;
-import com.vityazev_egor.Core.WebElements.By;
-import com.vityazev_egor.Core.WebElements.WebElement;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
+import com.vityazev_egor.Core.WaitTask.IWaitTask;
 import com.vityazev_egor.Core.WebSocketClient;
+import com.vityazev_egor.Core.WebElements.By;
+import com.vityazev_egor.Core.WebElements.WebElement;
 import com.vityazev_egor.Models.DevToolsInfo;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-
-import java.awt.image.*;
-import java.util.*;
-import java.nio.file.*;
-import java.awt.Dimension;
-import java.awt.Point;
 
 public class NoDriver{
     private Process chrome;
@@ -36,9 +41,10 @@ public class NoDriver{
 
     public static Boolean isInit = false;
 
-    public NoDriver(String socks5Proxy) throws IOException{
+    // переменные, который используются для корректировки нажатий через xdo
+    private Integer calibrateX = 0, calibrateY = 0;
 
-        // TODO возможно стоит перейти на chromium-browser
+    public NoDriver(String socks5Proxy) throws IOException{
         // запускаем браузер и перехватываем вывод в консоли
         ProcessBuilder browser = new ProcessBuilder(
             "google-chrome", 
@@ -48,6 +54,8 @@ public class NoDriver{
             "--window-size=1280,1060",
             "--no-first-run",
             "--no-default-browser-check",
+            "--lang=en",
+            "--accept-language=en-US,en",
             "--user-data-dir=nodriverData"
         );
         if (socks5Proxy != null) {
@@ -107,6 +115,38 @@ public class NoDriver{
         }
     }
 
+    // метод, который исправляет точность определения координат клика с использованием xdotool
+    public Boolean calibrateXDO(){
+        InputStream resInputStream = getClass().getClassLoader().getResourceAsStream("calibrateTest.html");
+        Path pathToTestHtml = Paths.get(System.getProperty("user.home"), "calibrateTest.html");
+        if (!Files.exists(pathToTestHtml)){
+            try {
+                Files.copy(resInputStream, pathToTestHtml);
+            } catch (IOException e) {
+                logger.error("Error while copying calibrateTest.html. Can't do calibration", e);
+                return false;
+            }
+        }
+
+        loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
+        xdoClick(100, 100);
+        var xDivContent = findElement(By.id("xdata")).getContent(this);
+        var yDivContent = findElement(By.id("ydata")).getContent(this);
+        if (!xDivContent.isPresent() || !yDivContent.isPresent()) return false;
+        logger.warning(String.format("Real x = %s; Real y = %s", xDivContent.get(), yDivContent.get()));
+
+        calibrateX = Integer.parseInt(xDivContent.get()) - 100;
+        calibrateY = Integer.parseInt(yDivContent.get()) - 100;
+        logger.warning(String.format("Diff x = %s; Diff y = %s", calibrateX.toString(), calibrateY.toString()));
+
+        try {
+            Files.delete(pathToTestHtml);
+        } catch (IOException e) {
+            logger.error("Can't delete test html file", e);
+        }
+        return true;
+    }
+
     public void loadUrl(String url){
         String json = cmdProcessor.genLoadUrl(url);
         socketClient.sendCommand(json);
@@ -134,6 +174,13 @@ public class NoDriver{
         socketClient.sendCommand(cmdProcessor.genMouseMove(x, y));
     }
 
+    private Optional<Point> getElementPosition(WebElement element){
+        return element.getPosition(this);
+    }
+    private Optional<Dimension> getElementSize(WebElement element){
+        return element.getSize(this);
+    }
+
     // works even if u use proxy
     public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
@@ -153,7 +200,16 @@ public class NoDriver{
                         if (!currentHtml.isPresent()) return false;
 
                         if (currentHtml.get().contains("ray-id")){
-                            xdoClick(180, 270);
+                            var spacer = findElement(By.className("spacer"));
+                            var spacerPoint = getElementPosition(spacer);
+                            var spacerSize = getElementSize(spacer);
+                            if (!spacerPoint.isPresent() || !spacerSize.isPresent()){
+                                logger.info("Spacer div is still loading...");
+                                return false;
+                            }
+                            Integer realX = spacerPoint.get().x - spacerSize.get().width/2 + 30;
+                            xdoClick(realX, spacerPoint.get().y);
+                            //xdoClick(207, 286);
                             return false;
                         }
                         else{
@@ -272,8 +328,6 @@ public class NoDriver{
         emulateClick(position.get().getX(), position.get().getY());
     }
 
-    // TODO когда нету плашки с предложеним установить хром как браузер по умолчанию, этот метод правильно получает размеры с погрешностью в 4 пикселя
-    // TODO возмоно стоит перейти на использование JCEF Simple App вместо полноценного браузера
     public void xdoClick(Integer x, Integer y) {
         // Получаем позицию окна на экране
         Point windowPosition = getWindowPosition(); // Позиция окна на экране (начало отчёта координат)
@@ -295,8 +349,8 @@ public class NoDriver{
     
         // Координаты клика на экране:
         // Позиция окна на экране + отступы из-за интерфейса
-        Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x;
-        Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y;
+        Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x - calibrateX;
+        Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y - calibrateY;
     
         // Расчет координат клика на экране
         logger.warning(String.format("Screen click pos %d %d", screenX, screenY));

@@ -62,21 +62,26 @@ public class Application {
         Thread.sleep(5000);
         d.exit();
     }
-
-    public static void testViewPort(){
-
+    @SuppressWarnings("unused")
+    private static void testCalibrateXDO() throws IOException, InterruptedException{
+        NoDriver d = new NoDriver();
+        d.calibrateXDO();
+        waitEnter();
+        d.exit();
     }
 
     @SuppressWarnings("unused")
     private static void testCloudFlareBypass() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
         d.clearCookies();
-        var result = d.loadUrlAndBypassCFCDP("https://forum.cfcybernews.eu", 5, 20);
+        d.calibrateXDO();
+        var result = d.loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 10);
         if (result){
             System.out.println("Bypassed CloudFlare");
         }
         else{
             System.err.println("Can't bypass CloudFlare");
+            d.captureScreenshot(Path.of("cf.png"));
         }
         Scanner sc = new Scanner(System.in);
         sc.nextLine();
