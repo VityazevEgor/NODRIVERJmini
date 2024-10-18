@@ -2,6 +2,7 @@ package com.vityazev_egor.Core.WebElements;
 
 public abstract class By {
     public abstract String getJavaScript();
+    public abstract String getMultiJavaScript();
 
     public static By id(String id) {
         return new ById(id);
@@ -30,44 +31,64 @@ public abstract class By {
         public String getJavaScript() {
             return elementJs;
         }
+
+        @Override
+        public String getMultiJavaScript() {
+            throw new UnsupportedOperationException("Unimplemented method 'getMultiJavaScript' cuz there can not be multipale elements with the same id");
+        }
     }
 
     private static class ByCssSelector extends By {
-        private final String elementJs;
+        private final String query;
 
         public ByCssSelector(String selector) {
-            this.elementJs = String.format("document.querySelector('%s')", selector);
+            this.query = selector;
         }
 
         @Override
         public String getJavaScript() {
-            return elementJs;
+            return String.format("document.querySelector('%s')", query);
+        }
+
+        @Override
+        public String getMultiJavaScript() {
+            return String.format("document.querySelectorAll('%s')", query);
         }
     }
 
     private static class ByClassName extends By {
-        private final String elementJs;
+        private final String className;
 
         public ByClassName(String className) {
-            this.elementJs = String.format("document.getElementsByClassName('%s')[0]", className);
+            this.className = className;
         }
 
         @Override
         public String getJavaScript() {
-            return elementJs;
+            return String.format("document.getElementsByClassName('%s')[0]", className);
+        }
+
+        @Override
+        public String getMultiJavaScript() {
+            return String.format("document.getElementsByClassName('%s')", className);
         }
     }
 
     private static class ByName extends By {
-        private final String elementJs;
+        private final String name;
 
         public ByName(String name) {
-            this.elementJs = String.format("document.getElementsByName('%s')[0]", name);
+            this.name = name;
         }
 
         @Override
         public String getJavaScript() {
-            return elementJs;
+            return String.format("document.getElementsByName('%s')[0]", name);
+        }
+
+        @Override
+        public String getMultiJavaScript() {
+            return String.format("document.getElementsByName('%s')", name);
         }
     }
 }

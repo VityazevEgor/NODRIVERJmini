@@ -25,8 +25,8 @@ class ApplicationTest {
     @Test
     void testLoadAndWait() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
-        Boolean result = d.loadUrlAndWait("https://bing.com", 10);
-        Boolean result2 = d.loadUrlAndWait("https://ya.ru", 10);
+        Boolean result = d.getNavigation().loadUrlAndWait("https://bing.com", 10);
+        Boolean result2 = d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         d.exit();
         assertTrue(result);
         assertTrue(result2);

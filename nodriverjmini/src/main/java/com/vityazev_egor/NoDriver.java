@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 import org.apache.commons.imaging.Imaging;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,35 +18,44 @@ import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
-import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebSocketClient;
 import com.vityazev_egor.Core.Driver.Input;
+import com.vityazev_egor.Core.Driver.Navigation;
 import com.vityazev_egor.Core.Driver.XDO;
 import com.vityazev_egor.Core.WebElements.By;
 import com.vityazev_egor.Core.WebElements.WebElement;
 import com.vityazev_egor.Models.DevToolsInfo;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-@Data
 public class NoDriver{
+    @Getter
     private Process chrome;
     private Thread consoleListener;
     private final CustomLogger logger = new CustomLogger(NoDriver.class.getName());
+    @Getter
     private WebSocketClient socketClient;
+    @Getter
     private CommandsProcessor cmdProcessor = new CommandsProcessor();
 
     public static Boolean isInit = false;
 
     // переменные, который используются для корректировки нажатий через xdo
+    @Getter
+    @Setter
     private Integer calibrateX = 0, calibrateY = 0;
 
     // расширение функционала
+    @Getter
     private final XDO xdo;
+    @Getter
     private final Input input;
+    @Getter
+    private final Navigation navigation;
 
     public NoDriver(String socks5Proxy) throws IOException{
         // запускаем браузер и перехватываем вывод в консоли
@@ -78,6 +88,7 @@ public class NoDriver{
         // иницилизируем классы для расширения функционала
         xdo = new XDO(this);
         input = new Input(this);
+        navigation = new Navigation(this);
 
 
         findNewTab();
@@ -123,119 +134,15 @@ public class NoDriver{
         }
     }
 
-    public void loadUrl(String url){
-        String json = cmdProcessor.genLoadUrl(url);
-        socketClient.sendCommand(json);
-    }
-
-    public Boolean loadUrlAndWait(String url, Integer timeOutSeconds){
-        loadUrl(url);
-        Shared.sleep(500); // we need give some time for browser to start loading of page
-        var task = new WaitTask() {
-
-            @Override
-            public Boolean condition() {
-                Optional<String> response = socketClient.sendAndWaitResult(2, cmdProcessor.genExecuteJs("document.readyState"));
-                if (!response.isPresent()) return false;
-                String jsResult = cmdProcessor.getJsResult(response.get());
-
-                return jsResult.equals("complete");
-            }
-            
-        };
-        return task.execute(timeOutSeconds, 500);
-    }
-
-    private Optional<Point> getElementPosition(WebElement element){
+    public Optional<Point> getElementPosition(WebElement element){
         return element.getPosition(this);
     }
-    private Optional<Dimension> getElementSize(WebElement element){
+    public Optional<Dimension> getElementSize(WebElement element){
         return element.getSize(this);
-    }
-
-    // works even if u use proxy
-    public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
-        Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
-        if (!loadResult) return false;
-
-        var html = getHtml();
-        if (!html.isPresent()) return false;
-
-        if (html.get().contains("ray-id")){
-            logger.warning("Detected CloudFlare");
-            var task = new WaitTask() {
-
-                @Override
-                public Boolean condition() {
-                    var currentHtml = getHtml();
-                    if (!currentHtml.isPresent()) return false;
-                    if (currentHtml.get().contains("ray-id")){
-                        var spacer = findElement(By.cssSelector("div[style*=\"display: grid;\"]"));
-                        var spacerPoint = getElementPosition(spacer);
-                        var spacerSize = getElementSize(spacer);
-                        if (!spacerPoint.isPresent() || !spacerSize.isPresent()){
-                            logger.info("Spacer div is still loading...");
-                            return false;
-                        }
-                        Integer realX = spacerPoint.get().x - spacerSize.get().width/2 + 30;
-                        xdo.click(realX, spacerPoint.get().y);
-                        //xdoClick(207, 286);
-                        return false;
-                    }
-                    else{
-                        return true;
-                    }
-                }
-                
-            };
-            return task.execute(cfBypassTimeOutSeconds, 1000);
-        }
-        else{
-            logger.warning("There is no CloudFlare");
-            return true;
-        }
-    }
-
-    // socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
-
-    // works only if ur IP is not related to hsoting IPs
-    public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
-        Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
-        if (!loadResult) return false;
-
-        var html = getHtml();
-        if (!html.isPresent()) return false;
-
-        if (html.get().contains("ray-id")){
-            logger.warning("Detected CloudFlare");
-            var task = new WaitTask(){
-
-                @Override
-                public Boolean condition() {
-                    var currentHtml = getHtml();
-                    if (!currentHtml.isPresent()) return false;
-                    var currentPageTime = getCurrentPageTime();
-                    if (!currentPageTime.isPresent()) return false;
-                    if (currentHtml.get().contains("ray-id")){
-                        socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
-                        return false;
-                    }
-                    else{
-                        return true;
-                    }
-                }
-                
-            };
-            return task.execute(cfBypassTimeOutSeconds, 1000);
-        }
-        else{
-            logger.warning("There is no CloudFlare");
-            return true;
-        }
-    }
+    }    
 
     public Optional<Double> getCurrentPageTime(){
-        var sDouble = getJSResult("performance.now()");
+        var sDouble = executeJSAndGetResult("performance.now()");
         if (sDouble.isPresent()){
             return Optional.of(Double.parseDouble(sDouble.get()));
         }
@@ -244,13 +151,12 @@ public class NoDriver{
         }
     }
 
-
     public Optional<String> getHtml(){
-        return getJSResult("document.documentElement.outerHTML");
+        return executeJSAndGetResult("document.documentElement.outerHTML");
     }
 
     public Optional<String> getTitle(){
-        return getJSResult("document.title");
+        return executeJSAndGetResult("document.title");
     }
 
     public Optional<Dimension> getViewPortSize() {
@@ -306,8 +212,9 @@ public class NoDriver{
         socketClient.sendCommand(json);
     }
 
-    public Optional<String> getJSResult(String js){
+    public Optional<String> executeJSAndGetResult(String js){
         String json = cmdProcessor.genExecuteJs(js);
+        //System.out.println(json);
         var response = socketClient.sendAndWaitResult(2, json);
         if (response.isPresent()){
             return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
@@ -324,6 +231,30 @@ public class NoDriver{
     public WebElement findElement(By by){
         return new WebElement(by);
     }
+
+    public List<WebElement> findElements(By by) {
+        var elements = new ArrayList<WebElement>();
+        
+        // Получаем JavaScript для выбора элементов
+        String jsArrayExpression = by.getMultiJavaScript();
+        
+        // Получаем длину массива элементов
+        String lengthJS = jsArrayExpression + ".length";
+        var lengthResult = executeJSAndGetResult(lengthJS);
+        
+        return lengthResult.map(len -> {
+            try {
+                int arrayLen = Integer.parseInt(len);
+                for (int i = 0; i < arrayLen; i++) {
+                    String elementJS = String.format("%s[%d]", jsArrayExpression, i);
+                    elements.add(new WebElement(elementJS));
+                }
+            } catch (NumberFormatException e) {
+                logger.error("Failed to parse array length", e);
+            }
+            return elements;
+        }).orElse(elements);  // Возвращаем пустой список, если длина не была получена
+    }    
     
     public void exit(){
         logger.warning("Destroying chrome");

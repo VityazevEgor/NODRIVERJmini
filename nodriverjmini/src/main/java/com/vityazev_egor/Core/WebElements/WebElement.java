@@ -12,22 +12,32 @@ import com.vityazev_egor.Core.Shared;
 public class WebElement {
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private final String getPositionJs;
-    private final String isClickableJs;
-    private final String getContentJs;
-    private final String getSizeJs;
-    private By by;
+    private String getPositionJs;
+    private String isClickableJs;
+    private String getContentJs;
+    private String getSizeJs;
+
+    private final String elementJs;
 
     public WebElement(By by){
-        this.by = by;
-        this.getPositionJs = Shared.readResource("elementsJS/getPosition.js").get().replace("REPLACE_ME", this.by.getJavaScript());
-        this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", this.by.getJavaScript());
-        this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", this.by.getJavaScript());
-        this.getContentJs = this.by.getJavaScript() + ".innerHTML";
+        this.elementJs = by.getJavaScript();
+        initScripts();
+    }
+
+    public WebElement(String elementJs){
+        this.elementJs = elementJs;
+        initScripts();
+    }
+
+    private void initScripts(){
+        this.getPositionJs = Shared.readResource("elementsJS/getPosition.js").get().replace("REPLACE_ME", elementJs);
+        this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", elementJs);
+        this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
+        this.getContentJs = elementJs + ".innerHTML";
     }
 
     public Optional<Point> getPosition(NoDriver driver){
-        var result = driver.getJSResult(getPositionJs);
+        var result = driver.executeJSAndGetResult(getPositionJs);
         if (!result.isPresent()) return Optional.empty();
 
         String jsonResponse = result.get();
@@ -47,7 +57,7 @@ public class WebElement {
     }
 
     public Optional<Dimension> getSize(NoDriver driver){
-        var result = driver.getJSResult(getSizeJs);
+        var result = driver.executeJSAndGetResult(getSizeJs);
 
         String jsonResponse = result.get();
         if (jsonResponse.contains("not found")) return Optional.empty();
@@ -66,15 +76,15 @@ public class WebElement {
     }
 
     public void getFocus(NoDriver driver){
-        driver.executeJS(by.getJavaScript() + ".focus()");
+        driver.executeJS(elementJs + ".focus()");
     }
 
     public Optional<String> getContent(NoDriver driver){
-        return driver.getJSResult(getContentJs);
+        return driver.executeJSAndGetResult(getContentJs);
     }
 
     public Boolean isClickable(NoDriver driver){
-        var result = driver.getJSResult(isClickableJs);
+        var result = driver.executeJSAndGetResult(isClickableJs);
         if (!result.isPresent()) return false;
 
         try {

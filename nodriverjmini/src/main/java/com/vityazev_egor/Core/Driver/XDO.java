@@ -36,7 +36,7 @@ public class XDO {
             }
         }
 
-        driver.loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
+        driver.getNavigation().loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
         click(100, 100);
         var xDivContent = driver.findElement(By.id("xdata")).getContent(driver);
         var yDivContent = driver.findElement(By.id("ydata")).getContent(driver);

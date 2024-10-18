@@ -23,6 +23,8 @@ public class CustomLogger {
 
     public void error(String message, Exception ex){
         logger.warning(ANSI_RED + message + ANSI_RESET);
-        ex.printStackTrace();
+        if (ex != null){
+            ex.printStackTrace();
+        }
     }
 }

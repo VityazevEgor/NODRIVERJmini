@@ -14,16 +14,32 @@ public class Application {
         testCloudFlareBypass();
     }
 
+    public static void testMultiElements() throws IOException{
+        NoDriver driver = new NoDriver();
+        driver.getXdo().calibrate();
+        driver.getNavigation().loadUrlAndWait("file:///home/egor/Desktop/test.html", 2);
+        System.out.println(driver.getHtml());
+        var elements = driver.findElements(By.cssSelector("[data-type=\"searchable\"]"));
+        if (elements.size()>0){
+            elements.get(elements.size()-1).getPosition(driver).map(pos ->{
+                driver.getXdo().click((int)pos.getX(), (int)pos.getY());
+                return true;
+            });
+        }
+        waitEnter();
+        driver.exit();
+    }
+
     public static void testProxy() throws IOException, InterruptedException{
         NoDriver driver = new NoDriver("127.0.0.1:2080");
-        driver.loadUrlAndWait("https://2ip.ru", 10);
+        driver.getNavigation().loadUrlAndWait("https://2ip.ru", 10);
         waitEnter();
         driver.exit();
     }
 
     public static void testWebElemts() throws IOException, InterruptedException{
         NoDriver driver = new NoDriver();
-        driver.loadUrlAndWait("https://bing.com", 10);
+        driver.getNavigation().loadUrlAndWait("https://bing.com", 10);
         var element = driver.findElement(By.id("sb_form_q"));
         if(element.isClickable(driver)){
             var elementPosition = element.getPosition(driver);
@@ -47,7 +63,7 @@ public class Application {
 
     public static void testSreenShot() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
-        d.loadUrlAndWait("https://ya.ru", 10);
+        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         var image = d.captureScreenshot();
         //Thread.sleep(2000);
         ImageIO.write(image.get(), "png", Path.of("test.png").toFile());
@@ -56,7 +72,7 @@ public class Application {
 
     public static void testMouseMove() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
-        d.loadUrlAndWait("file:///home/egor/Desktop/mouse.html",10);
+        d.getNavigation().loadUrlAndWait("file:///home/egor/Desktop/mouse.html",10);
         d.getInput().emualteMouseMove(10, 10);
         Thread.sleep(5000);
         d.exit();
@@ -74,7 +90,7 @@ public class Application {
         NoDriver d = new NoDriver("127.0.0.1:2080");
         d.clearCookies();
         d.getXdo().calibrate();
-        var result = d.loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 10);
+        var result = d.getNavigation().loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 30);
         if (result){
             System.out.println("Bypassed CloudFlare");
         }
