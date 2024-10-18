@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.imaging.Imaging;
-import org.jetbrains.annotations.Nullable;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
@@ -200,7 +198,7 @@ public class NoDriver{
                         if (!currentHtml.isPresent()) return false;
 
                         if (currentHtml.get().contains("ray-id")){
-                            var spacer = findElement(By.className("spacer"));
+                            var spacer = findElement(By.cssSelector("div[style*=\"display: grid;\"]"));
                             var spacerPoint = getElementPosition(spacer);
                             var spacerSize = getElementSize(spacer);
                             if (!spacerPoint.isPresent() || !spacerSize.isPresent()){
@@ -330,7 +328,7 @@ public class NoDriver{
 
     public void xdoClick(Integer x, Integer y) {
         // Получаем позицию окна на экране
-        Point windowPosition = getWindowPosition(); // Позиция окна на экране (начало отчёта координат)
+        Point windowPosition = getWindowPosition().get(); // Позиция окна на экране (начало отчёта координат)
         
         // Получаем размер видимой части браузера (viewport)
         Dimension viewPortSize = getViewPortSize().get(); // Размер viewport (например, 1236x877)
@@ -426,8 +424,7 @@ public class NoDriver{
         socketClient.sendCommand(cmdProcessor.genClearCookies());
     }
 
-    @Nullable
-    public Point getWindowPosition() {
+    public Optional<Point> getWindowPosition() {
         String currentTitle = getTitle().get();
         // Команда для поиска окон по процессу Chrome
         String searchCmd = "xdotool search --pid " + chrome.pid();
@@ -453,7 +450,7 @@ public class NoDriver{
         
         if (matchingId == null) {
             System.out.println("Window with title \"" + currentTitle + "\" not found.");
-            return null;
+            return Optional.empty();
         }
         
         // Команда для получения геометрии окна по ID
@@ -470,7 +467,7 @@ public class NoDriver{
         String[] parts = position.split(",");
         int x = Integer.parseInt(parts[0]);
         int y = Integer.parseInt(parts[1]);
-        return new Point(x, y);
+        return Optional.of(new Point(x, y));
     }    
 
     public void testElementLocation(String elementId){
