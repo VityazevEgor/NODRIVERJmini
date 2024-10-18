@@ -15,25 +15,6 @@ public class CommandsProcessor {
     private Integer id = 1;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public final String getElementLocation = """
-            function getElementPositionById(id) {
-                var element = document.getElementById(id);
-                if (element) {
-                    var rect = element.getBoundingClientRect();
-                    var position = {
-                        top: rect.top,
-                        left: rect.left,
-                        bottom: rect.bottom,
-                        right: rect.right
-                    };
-                    return JSON.stringify(position);
-                } else {
-                    return JSON.stringify({ error: "Element not found" });
-                }
-            }
-            getElementPositionById("ELEMENT_ID");
-            """;
-
     private ObjectNode buildBase(String method, ObjectNode params){
         ObjectNode request = objectMapper.createObjectNode();
         request.put("id", id);

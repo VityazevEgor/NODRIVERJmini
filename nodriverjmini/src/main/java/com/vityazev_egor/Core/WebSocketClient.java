@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
-import com.vityazev_egor.Core.WaitTask.IWaitTask;
 
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
@@ -98,16 +97,15 @@ public class WebSocketClient {
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
         Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(json);
         if (!messageId.isPresent()) return Optional.empty();
+        var task = new WaitTask() {
 
-        var task = new WaitTask(
-            new IWaitTask() {
-                @Override
-                public Boolean execute() {
-                    var filtered = messages.stream().anyMatch(m->m.id == messageId.get());
-                    return filtered;
-                } 
+            @Override
+            public Boolean condition() {
+                var filtered = messages.stream().anyMatch(m->m.id == messageId.get());
+                return filtered;
             }
-        );
+            
+        };
         sendCommand(json);
         var result = task.execute(timeOutSeconds, 50);
         if (result){

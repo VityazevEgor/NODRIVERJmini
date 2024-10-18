@@ -6,7 +6,6 @@ import javax.imageio.*;
 
 import com.vityazev_egor.Core.WebElements.By;
 
-import java.nio.file.*;
 import java.nio.file.Path;
 
 public class Application {
@@ -32,9 +31,9 @@ public class Application {
                 System.out.println(elementPosition.get().getX());
                 System.out.println(elementPosition.get().getY());
             }
-            driver.emulateClick(element);
-            driver.enterText(element, "Как какать?");
-            driver.emulateClick(driver.findElement(By.id("search_icon")));
+            driver.getInput().emulateClick(element);
+            driver.getInput().enterText(element, "Как какать?");
+            driver.getInput().emulateClick(driver.findElement(By.id("search_icon")));
         }
         waitEnter();
         driver.exit();
@@ -58,23 +57,23 @@ public class Application {
     public static void testMouseMove() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
         d.loadUrlAndWait("file:///home/egor/Desktop/mouse.html",10);
-        d.emualteMouseMove(10, 10);
+        d.getInput().emualteMouseMove(10, 10);
         Thread.sleep(5000);
         d.exit();
     }
     @SuppressWarnings("unused")
     private static void testCalibrateXDO() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
-        d.calibrateXDO();
+        d.getXdo().calibrate();
         waitEnter();
         d.exit();
     }
 
     @SuppressWarnings("unused")
     private static void testCloudFlareBypass() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
+        NoDriver d = new NoDriver("127.0.0.1:2080");
         d.clearCookies();
-        d.calibrateXDO();
+        d.getXdo().calibrate();
         var result = d.loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 10);
         if (result){
             System.out.println("Bypassed CloudFlare");
@@ -87,34 +86,5 @@ public class Application {
         sc.nextLine();
         d.exit();
         sc.close();
-    }
-
-    public void majorTest() throws InterruptedException, IOException{
-        NoDriver d = new NoDriver();
-        d.loadUrl("file:///home/egor/Desktop/testIN.html");
-        Thread.sleep(1000);
-        for (int i=0; i<10; i++){
-            //d.emulateClick(10, 10);
-        }
-        d.enterText("Как какать?", "testinput");
-        Thread.sleep(1000);
-        d.loadUrl("file:///home/egor/Desktop/testB.html");
-        Thread.sleep(2000);
-        d.emulateKey();
-        Thread.sleep(1000);
-        d.loadUrl("https://bing.com");
-        Thread.sleep(5000);
-        d.enterText("Что такое майнкрафт?", "sb_form_q");
-        d.testElementLocation("sb_form_q");
-        Thread.sleep(10000);
-        d.exit();
-        System.exit(0);
-        d.loadUrl("https://google.com");
-        Thread.sleep(2000);
-        System.out.println("Got result "+d.getTitle());
-        d.loadUrl("https://dev.cfcybernews.eu");
-        Thread.sleep(10000);
-        System.out.println("Got result "+d.getTitle());
-        d.exit();
     }
 }

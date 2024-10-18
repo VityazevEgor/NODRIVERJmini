@@ -7,77 +7,22 @@ import java.awt.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.NoDriver;
+import com.vityazev_egor.Core.Shared;
 
-
-// TODO реализовать поиск элементов внутри shadow root элемента
 public class WebElement {
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private String getPositionJs;
-    private String isClickableJs;
-    private String getContentJs;
-    private String getSizeJs;
+    private final String getPositionJs;
+    private final String isClickableJs;
+    private final String getContentJs;
+    private final String getSizeJs;
     private By by;
 
     public WebElement(By by){
         this.by = by;
-
-        this.getPositionJs = String.format(
-            """
-            function getElementPosition() {
-                var element = %s;
-                if (element) {
-                    var rect = element.getBoundingClientRect();
-                    var position = {
-                        x: Math.round(rect.left + rect.width / 2),
-                        y: Math.round(rect.top + rect.height / 2)
-                    };
-                    return JSON.stringify(position);
-                } else {
-                    return JSON.stringify({ error: "Element not found" });
-                }
-            }
-            getElementPosition();
-            """
-            , this.by.getJavaScript());
-
-        this.getSizeJs = String.format(
-            """
-            function getElementSize() {
-                var element = %s;
-                if (element) {
-                    var rect = element.getBoundingClientRect();
-                    var position = {
-                        x: Math.round(rect.width),
-                        y: Math.round(rect.height)
-                    };
-                    return JSON.stringify(position);
-                } else {
-                    return JSON.stringify({ error: "Element not found" });
-                }
-            }
-            getElementSize();
-            """
-        , this.by.getJavaScript());
-
-        this.isClickableJs = String.format(
-            """
-            function isElementClickable() {
-                var element = %s;
-                if (!element) {
-                    return false;
-                }
-                var style = window.getComputedStyle(element);
-                var isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity > 0;
-                var rect = element.getBoundingClientRect();
-                var isUnderOtherElement = document.elementFromPoint(rect.left + 1, rect.top + 1) !== element;
-                var isEnabled = !element.disabled;
-                return isVisible && !isUnderOtherElement && isEnabled;
-            }
-            isElementClickable();
-            """
-            , this.by.getJavaScript());
-        
+        this.getPositionJs = Shared.readResource("elementsJS/getPosition.js").get().replace("REPLACE_ME", this.by.getJavaScript());
+        this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", this.by.getJavaScript());
+        this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", this.by.getJavaScript());
         this.getContentJs = this.by.getJavaScript() + ".innerHTML";
     }
 
