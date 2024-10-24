@@ -171,8 +171,12 @@ public class CommandsProcessor {
         return serializeNode( buildBase("Network.clearBrowserCookies", null));
     }
 
+    public String genCloseBrowser(){
+        return serializeNode(buildBase("Browser.close", null));
+    }
+
     public Optional<String> getScreenshotData(String response){
-        return Optional.ofNullable(getJsResult(response, "data"));
+        return getJsResult(response, "data");
     }
 
     public String[] genKeyInput(){
@@ -215,20 +219,23 @@ public class CommandsProcessor {
     }
 
     // иногда нам может в консоль прийти что-то раньше чем результат выполнения джава скрипта
-    @Nullable
-    public String getJsResult(String json, String fieldName){
+    public Optional<String> getJsResult(String json, String fieldName){
         try {
             JsonNode response = objectMapper.readTree(json);
             JsonNode result = response.findValue(fieldName);
             if (result != null){
-                return result.asText();
+                return Optional.ofNullable(result.asText());
             }
             else{
                 throw new Exception("There is no result fild");
             }
         } catch (Exception e) {
-            return null;
+            return Optional.empty();
         }
+    }
+
+    public Optional<String> getJsResult(String json){
+        return getJsResult(json, "value");
     }
 
     public Optional<Integer> parseIdFromCommand(String json){
@@ -239,10 +246,5 @@ public class CommandsProcessor {
         catch (Exception ex){
             return Optional.empty();
         }
-    }
-
-    @Nullable
-    public String getJsResult(String json){
-        return getJsResult(json, "value");
     }
 }

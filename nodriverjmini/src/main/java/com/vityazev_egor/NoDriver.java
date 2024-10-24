@@ -2,17 +2,12 @@ package com.vityazev_egor;
 
 import java.awt.Dimension;
 import java.awt.Point;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
 
-import org.apache.commons.imaging.Imaging;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
@@ -20,6 +15,7 @@ import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WebSocketClient;
 import com.vityazev_egor.Core.Driver.Input;
+import com.vityazev_egor.Core.Driver.Misc;
 import com.vityazev_egor.Core.Driver.Navigation;
 import com.vityazev_egor.Core.Driver.XDO;
 import com.vityazev_egor.Core.WebElements.By;
@@ -56,6 +52,9 @@ public class NoDriver{
     private final Input input;
     @Getter
     private final Navigation navigation;
+    
+    @Getter
+    private final Misc misc;
 
     public NoDriver(String socks5Proxy) throws IOException{
         // запускаем браузер и перехватываем вывод в консоли
@@ -89,7 +88,7 @@ public class NoDriver{
         xdo = new XDO(this);
         input = new Input(this);
         navigation = new Navigation(this);
-
+        misc = new Misc(this);
 
         findNewTab();
     }
@@ -160,21 +159,11 @@ public class NoDriver{
     }
 
     public Optional<Dimension> getViewPortSize() {
-        // Генерация JSON для выполнения JavaScript и получения ширины и высоты окна
-        String jsonWidth = cmdProcessor.genExecuteJs("window.innerWidth");
-        String jsonHeight = cmdProcessor.genExecuteJs("window.innerHeight");
-    
-        // Отправка команды и ожидание результата для ширины
-        var responseWidth = socketClient.sendAndWaitResult(2, jsonWidth);
-        String widthResult = responseWidth.isPresent() ? cmdProcessor.getJsResult(responseWidth.get()) : null;
-    
-        // Отправка команды и ожидание результата для высоты
-        var responseHeight = socketClient.sendAndWaitResult(2, jsonHeight);
-        String heightResult = responseHeight.isPresent() ? cmdProcessor.getJsResult(responseHeight.get()) : null;
-    
+        var portWidth = executeJSAndGetResult("window.innerWidth");
+        var portHeight = executeJSAndGetResult("window.innerHeight");
         // Если оба результата присутствуют, создаем и возвращаем Optional<Dimension>
-        if (widthResult != null && heightResult != null) {
-            return Optional.of(new Dimension(Integer.parseInt(widthResult), Integer.parseInt(heightResult)));
+        if (portWidth.isPresent() && portHeight.isPresent()) {
+            return Optional.of(new Dimension(Integer.parseInt(portWidth.get()), Integer.parseInt(portHeight.get())));
         } else {
             return Optional.empty();
         }
@@ -184,27 +173,6 @@ public class NoDriver{
         String[] jsons = cmdProcessor.genKeyInput();
         socketClient.sendCommand(jsons[0]);
         socketClient.sendCommand(jsons[1]);
-    }
-
-    public Optional<BufferedImage> captureScreenshot(Path screenSavePath){
-        var response = socketClient.sendAndWaitResult(2, cmdProcessor.genCaptureScreenshot());
-        if (!response.isPresent()) return Optional.empty();
-        var baseData = cmdProcessor.getScreenshotData(response.get());
-        if (!baseData.isPresent()) return Optional.empty();
-        
-        byte[] imageBytes = Base64.getDecoder().decode(baseData.get());
-        try {
-            if (screenSavePath != null) Files.write(screenSavePath, imageBytes);
-            // вот тут я преобразую байты картинки в формате PNG
-            return Optional.of( Imaging.getBufferedImage(imageBytes));
-        } catch (Exception e) {
-            logger.warning("Can't convert bytes to BufferedImage");
-            return Optional.empty();
-        }
-    }
-
-    public Optional<BufferedImage> captureScreenshot(){
-        return captureScreenshot(null);
     }
 
     public void executeJS(String js){
@@ -217,15 +185,11 @@ public class NoDriver{
         //System.out.println(json);
         var response = socketClient.sendAndWaitResult(2, json);
         if (response.isPresent()){
-            return Optional.ofNullable(cmdProcessor.getJsResult(response.get()));
+            return cmdProcessor.getJsResult(response.get());
         }
         else{
             return Optional.empty();
         }
-    }
-
-    public void clearCookies(){
-        socketClient.sendCommand(cmdProcessor.genClearCookies());
     }
 
     public WebElement findElement(By by){
@@ -257,8 +221,11 @@ public class NoDriver{
     }    
     
     public void exit(){
-        logger.warning("Destroying chrome");
-        chrome.destroy();
+        logger.warning("Closing chrome");
+        socketClient.sendCommand(cmdProcessor.genCloseBrowser());
+        try {
+            chrome.waitFor();
+        } catch (Exception e) {}
         isInit = false;
     }
 }

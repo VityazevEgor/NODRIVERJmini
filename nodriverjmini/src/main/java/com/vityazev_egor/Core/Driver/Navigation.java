@@ -6,8 +6,6 @@ import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
 
-import java.util.*;
-
 public class Navigation {
     private final NoDriver driver;
     private final CustomLogger logger;
@@ -29,11 +27,9 @@ public class Navigation {
 
             @Override
             public Boolean condition() {
-                Optional<String> response = driver.getSocketClient().sendAndWaitResult(2, driver.getCmdProcessor().genExecuteJs("document.readyState"));
-                if (!response.isPresent()) return false;
-                String jsResult = driver.getCmdProcessor().getJsResult(response.get());
-
-                return jsResult.equals("complete");
+                var jsResult = driver.executeJSAndGetResult("document.readyState");
+                if (!jsResult.isPresent()) return false;
+                return jsResult.get().equals("complete");
             }
             
         };

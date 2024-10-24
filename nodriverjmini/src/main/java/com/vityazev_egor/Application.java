@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Scanner;
 import javax.imageio.*;
 
+import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
 
 import java.nio.file.Path;
@@ -11,8 +12,64 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        testCloudFlareBypass();
+        exampleCopilotAuth();
     }
+
+    public static void exampleCopilotAuth() throws IOException{
+        NoDriver driver = new NoDriver("127.0.0.1:2080");
+        System.out.println("Auth result = " + copilotAuth(driver));
+        waitEnter();
+        driver.exit();
+    }
+
+    private static Boolean copilotAuth(NoDriver driver) {
+        driver.getNavigation().loadUrlAndWait("https://copilot.microsoft.com/", 10);
+
+        // Ожидаем и нажимаем на первую кнопку "Sign in"
+        var signInButton = driver.findElement(By.cssSelector("button[title=\"Sign in\"]"));
+        var waitForSignInButton = new WaitTask() {
+            @Override
+            public Boolean condition() {
+                return signInButton.isExists(driver);
+            }
+        };
+        if (!waitForSignInButton.execute(5, 400)) {
+            System.out.println("Can't find sign in button");
+            return false;
+        }
+        driver.getInput().emulateClick(signInButton);
+
+        // Проверяем наличие второй кнопки "Sign in" после раскрытия меню
+        var signInButtons = driver.findElements(By.cssSelector("button[title=\"Sign in\"]"));
+        if (signInButtons.size() < 2) {
+            System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
+            return false;
+        }
+        driver.getInput().emulateClick(signInButtons.get(1));
+
+        // Ожидаем появления поля для ввода логина
+        var loginInput = driver.findElement(By.name("loginfmt"));
+        var waitForLoginInput = new WaitTask() {
+            @Override
+            public Boolean condition() {
+                return loginInput.isExists(driver);
+            }
+        };
+        if (!waitForLoginInput.execute(5, 400)) {
+            System.out.println("Can't find login input");
+            return false;
+        }
+
+        // Вводим email и нажимаем кнопку "Далее"
+        driver.getInput().enterText(loginInput, "m2103087@edu.misis.ru");
+        var loginButton = driver.findElement(By.id("idSIButton9"));
+        if (loginButton.isExists(driver)) {
+            driver.getInput().emulateClick(loginButton);
+        }
+
+        return true;
+    }
+ 
 
     public static void testMultiElements() throws IOException{
         NoDriver driver = new NoDriver();
@@ -22,7 +79,7 @@ public class Application {
         var elements = driver.findElements(By.cssSelector("[data-type=\"searchable\"]"));
         if (elements.size()>0){
             elements.get(elements.size()-1).getPosition(driver).map(pos ->{
-                driver.getXdo().click((int)pos.getX(), (int)pos.getY());
+                driver.getXdo().click(pos.getX(), pos.getY());
                 return true;
             });
         }
@@ -56,6 +113,7 @@ public class Application {
     }
 
     public static void waitEnter(){
+        System.out.println("Waiting for input");
         var sc = new Scanner(System.in);
         sc.nextLine();
         sc.close();
@@ -64,7 +122,7 @@ public class Application {
     public static void testSreenShot() throws IOException, InterruptedException{
         NoDriver d = new NoDriver();
         d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
-        var image = d.captureScreenshot();
+        var image = d.getMisc().captureScreenshot();
         //Thread.sleep(2000);
         ImageIO.write(image.get(), "png", Path.of("test.png").toFile());
         d.exit();
@@ -88,7 +146,7 @@ public class Application {
     @SuppressWarnings("unused")
     private static void testCloudFlareBypass() throws IOException, InterruptedException{
         NoDriver d = new NoDriver("127.0.0.1:2080");
-        d.clearCookies();
+        d.getMisc().clearCookies();
         d.getXdo().calibrate();
         var result = d.getNavigation().loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 30);
         if (result){
@@ -96,7 +154,7 @@ public class Application {
         }
         else{
             System.err.println("Can't bypass CloudFlare");
-            d.captureScreenshot(Path.of("cf.png"));
+            d.getMisc().captureScreenshot(Path.of("cf.png"));
         }
         Scanner sc = new Scanner(System.in);
         sc.nextLine();

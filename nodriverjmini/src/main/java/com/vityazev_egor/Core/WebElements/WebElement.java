@@ -16,6 +16,7 @@ public class WebElement {
     private String isClickableJs;
     private String getContentJs;
     private String getSizeJs;
+    private String isExistsJs;
 
     private final String elementJs;
 
@@ -33,7 +34,19 @@ public class WebElement {
         this.getPositionJs = Shared.readResource("elementsJS/getPosition.js").get().replace("REPLACE_ME", elementJs);
         this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", elementJs);
         this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
+        this.isExistsJs = Shared.readResource("elementsJS/isElementExists.js").get().replace("REPLACE_ME", elementJs);
         this.getContentJs = elementJs + ".innerHTML";
+    }
+
+    public Boolean isExists(NoDriver driver){
+        var result = driver.executeJSAndGetResult(isExistsJs);
+        return result.map((jsResult) ->{
+            try {
+                return Boolean.parseBoolean(jsResult);
+            } catch (Exception e) {
+                return false;
+            }
+        }).orElse(false);
     }
 
     public Optional<Point> getPosition(NoDriver driver){
@@ -79,7 +92,7 @@ public class WebElement {
         driver.executeJS(elementJs + ".focus()");
     }
 
-    public Optional<String> getContent(NoDriver driver){
+    public Optional<String> getHTMLContent(NoDriver driver){
         return driver.executeJSAndGetResult(getContentJs);
     }
 

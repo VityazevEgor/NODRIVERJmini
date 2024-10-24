@@ -38,8 +38,8 @@ public class XDO {
 
         driver.getNavigation().loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
         click(100, 100);
-        var xDivContent = driver.findElement(By.id("xdata")).getContent(driver);
-        var yDivContent = driver.findElement(By.id("ydata")).getContent(driver);
+        var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent(driver);
+        var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent(driver);
         if (!xDivContent.isPresent() || !yDivContent.isPresent()) return false;
         logger.warning(String.format("Real x = %s; Real y = %s", xDivContent.get(), yDivContent.get()));
 
@@ -90,6 +90,10 @@ public class XDO {
         new ConsoleListener(moveCmd).run();
         new ConsoleListener(clickCmd).run();
         //socketClient.sendCommand(cmdProcessor.genLayoutMetrics());
+    }
+
+    public void click(Double x, Double y){
+        click(x.intValue(), y.intValue());
     }
 
     public Optional<Point> getWindowPosition() {
