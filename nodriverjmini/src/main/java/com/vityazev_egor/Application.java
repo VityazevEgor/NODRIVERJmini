@@ -12,7 +12,7 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        exampleCopilotAuth();
+        testCloudFlareBypass();
     }
 
     public static void exampleCopilotAuth() throws IOException{
@@ -61,7 +61,7 @@ public class Application {
         }
 
         // Вводим email и нажимаем кнопку "Далее"
-        driver.getInput().enterText(loginInput, "m2103087@edu.misis.ru");
+        driver.getInput().enterText(loginInput, "test@gmail.com");
         var loginButton = driver.findElement(By.id("idSIButton9"));
         if (loginButton.isExists(driver)) {
             driver.getInput().emulateClick(loginButton);
