@@ -1,5 +1,14 @@
 # NODRIVERJmini
- A library for controlling the browser directly via web sockets without using web drivers
+ A library for controlling the browser directly via web sockets without using web drivers, which give you ability to be undectable for anti-bot systems.
+
+ **Features**
+ * Do not need a web-driver
+ * Works with any version of chrome browser
+ * Pass anti-bot [checks](https://bot.sannysoft.com/)
+ * Simular to Selenium
+ * Can emulate mouse input on system level (xdotool)
+
+ > A idea of my library was inspired by [nodriver](https://github.com/ultrafunkamsterdam/nodriver), but it's not a complete java fork of this library.
 
 ## How to install
 
@@ -29,7 +38,11 @@ The NODRIVERJmini is now ready to use in your project!
 NoDriver driver = new NoDriver();
 ```
 
-## Example usage 
+## Example code
+Here is example of program that go to the copilot site, opens login page, enter email address and press "next"
+
+![Running code from example](/images/copilotLogin.gif "Example code")
+
 ```Java
 public static void exampleCopilotAuth() throws IOException{
         NoDriver driver = new NoDriver("127.0.0.1:2080");
@@ -41,7 +54,7 @@ public static void exampleCopilotAuth() throws IOException{
     private static Boolean copilotAuth(NoDriver driver) {
         driver.getNavigation().loadUrlAndWait("https://copilot.microsoft.com/", 10);
 
-        // We wait and click on the first "Sign in" button
+        // Ожидаем и нажимаем на первую кнопку "Sign in"
         var signInButton = driver.findElement(By.cssSelector("button[title=\"Sign in\"]"));
         var waitForSignInButton = new WaitTask() {
             @Override
@@ -55,7 +68,7 @@ public static void exampleCopilotAuth() throws IOException{
         }
         driver.getInput().emulateClick(signInButton);
 
-        // We check the presence of the second "Sign in" button after opening the menu
+        // Проверяем наличие второй кнопки "Sign in" после раскрытия меню
         var signInButtons = driver.findElements(By.cssSelector("button[title=\"Sign in\"]"));
         if (signInButtons.size() < 2) {
             System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
@@ -63,7 +76,7 @@ public static void exampleCopilotAuth() throws IOException{
         }
         driver.getInput().emulateClick(signInButtons.get(1));
 
-        // We are waiting for the login field to appear
+        // Ожидаем появления поля для ввода логина
         var loginInput = driver.findElement(By.name("loginfmt"));
         var waitForLoginInput = new WaitTask() {
             @Override
@@ -76,7 +89,7 @@ public static void exampleCopilotAuth() throws IOException{
             return false;
         }
 
-        // Enter the email and click the "Next" button
+        // Вводим email и нажимаем кнопку "Далее"
         driver.getInput().enterText(loginInput, "test@gmail.com");
         var loginButton = driver.findElement(By.id("idSIButton9"));
         if (loginButton.isExists(driver)) {

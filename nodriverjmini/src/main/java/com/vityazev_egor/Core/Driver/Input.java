@@ -30,7 +30,7 @@ public class Input {
     }
 
     public void emulateClick(WebElement element){
-        var position = element.getPosition(driver);
+        var position = element.getPosition();
         if (!position.isPresent()){
             logger.warning("Can't get element position to click");
             return;
@@ -47,7 +47,7 @@ public class Input {
     }
 
     public void enterText(WebElement element, String text){
-        element.getFocus(driver);
+        element.getFocus();
         var list = driver.getCmdProcessor().genTextInput(text);
         driver.getSocketClient().sendCommand(list);
     }

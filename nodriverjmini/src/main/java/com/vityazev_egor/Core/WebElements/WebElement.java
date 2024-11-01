@@ -19,14 +19,17 @@ public class WebElement {
     private String isExistsJs;
 
     private final String elementJs;
+    private final NoDriver driver;
 
-    public WebElement(By by){
+    public WebElement(NoDriver driver, By by){
         this.elementJs = by.getJavaScript();
+        this.driver = driver;
         initScripts();
     }
 
-    public WebElement(String elementJs){
+    public WebElement(NoDriver driver, String elementJs){
         this.elementJs = elementJs;
+        this.driver = driver;
         initScripts();
     }
 
@@ -49,7 +52,7 @@ public class WebElement {
         }).orElse(false);
     }
 
-    public Optional<Point> getPosition(NoDriver driver){
+    public Optional<Point> getPosition(){
         var result = driver.executeJSAndGetResult(getPositionJs);
         if (!result.isPresent()) return Optional.empty();
 
@@ -69,7 +72,7 @@ public class WebElement {
         }
     }
 
-    public Optional<Dimension> getSize(NoDriver driver){
+    public Optional<Dimension> getSize(){
         var result = driver.executeJSAndGetResult(getSizeJs);
 
         String jsonResponse = result.get();
@@ -88,15 +91,15 @@ public class WebElement {
         }
     }
 
-    public void getFocus(NoDriver driver){
+    public void getFocus(){
         driver.executeJS(elementJs + ".focus()");
     }
 
-    public Optional<String> getHTMLContent(NoDriver driver){
+    public Optional<String> getHTMLContent(){
         return driver.executeJSAndGetResult(getContentJs);
     }
 
-    public Boolean isClickable(NoDriver driver){
+    public Boolean isClickable(){
         var result = driver.executeJSAndGetResult(isClickableJs);
         if (!result.isPresent()) return false;
 

@@ -51,15 +51,18 @@ public class Navigation {
                 @Override
                 public Boolean condition() {
                     var currentHtml = driver.getHtml();
-                    if (!currentHtml.isPresent()) return false;
-                    if (currentHtml.get().contains("ray-id")){
+                    var currentTitle = driver.getTitle();
+                    if (!currentHtml.isPresent() || !currentTitle.isPresent()) return false;
+
+                    if (currentHtml.get().contains("ray-id") || currentTitle.get().contains("Just a moment")){
                         var spacer = driver.findElement(By.cssSelector("div[style*=\"display: grid;\"]"));
-                        var spacerPoint = driver.getElementPosition(spacer);
-                        var spacerSize = driver.getElementSize(spacer);
+                        var spacerPoint = spacer.getPosition();
+                        var spacerSize = spacer.getSize();
                         if (!spacerPoint.isPresent() || !spacerSize.isPresent()){
                             logger.info("Spacer div is still loading...");
                             return false;
                         }
+                        
                         Integer realX = spacerPoint.get().x - spacerSize.get().width/2 + 30;
                         driver.getXdo().click(realX, spacerPoint.get().y);
                         return false;

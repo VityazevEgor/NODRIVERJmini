@@ -12,7 +12,7 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        testCloudFlareBypass();
+        exampleCopilotAuth();
     }
 
     public static void exampleCopilotAuth() throws IOException{
@@ -78,7 +78,7 @@ public class Application {
         System.out.println(driver.getHtml());
         var elements = driver.findElements(By.cssSelector("[data-type=\"searchable\"]"));
         if (elements.size()>0){
-            elements.get(elements.size()-1).getPosition(driver).map(pos ->{
+            elements.get(elements.size()-1).getPosition().map(pos ->{
                 driver.getXdo().click(pos.getX(), pos.getY());
                 return true;
             });
@@ -98,8 +98,8 @@ public class Application {
         NoDriver driver = new NoDriver();
         driver.getNavigation().loadUrlAndWait("https://bing.com", 10);
         var element = driver.findElement(By.id("sb_form_q"));
-        if(element.isClickable(driver)){
-            var elementPosition = element.getPosition(driver);
+        if(element.isClickable()){
+            var elementPosition = element.getPosition();
             if (elementPosition.isPresent()){
                 System.out.println(elementPosition.get().getX());
                 System.out.println(elementPosition.get().getY());
@@ -148,7 +148,7 @@ public class Application {
         NoDriver d = new NoDriver("127.0.0.1:2080");
         d.getMisc().clearCookies();
         d.getXdo().calibrate();
-        var result = d.getNavigation().loadUrlAndBypassCFXDO("https://forum.cfcybernews.eu", 5, 30);
+        var result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
         if (result){
             System.out.println("Bypassed CloudFlare");
         }

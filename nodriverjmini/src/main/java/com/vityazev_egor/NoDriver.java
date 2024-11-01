@@ -52,7 +52,6 @@ public class NoDriver{
     private final Input input;
     @Getter
     private final Navigation navigation;
-    
     @Getter
     private final Misc misc;
 
@@ -70,7 +69,7 @@ public class NoDriver{
             "--accept-language=en-US,en",
             "--user-data-dir=nodriverData"
         );
-        if (socks5Proxy != null) {
+        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
             // Добавляем аргумент для прокси без кавычек вокруг URL
             browser.command().add("--proxy-server=socks5://" + socks5Proxy);
         }
@@ -96,7 +95,6 @@ public class NoDriver{
     public NoDriver() throws IOException{
         this(null);
     }
-
 
     // find web socket url to control new tab of chrome
     private void findNewTab(){
@@ -132,13 +130,6 @@ public class NoDriver{
             exit();
         }
     }
-
-    public Optional<Point> getElementPosition(WebElement element){
-        return element.getPosition(this);
-    }
-    public Optional<Dimension> getElementSize(WebElement element){
-        return element.getSize(this);
-    }    
 
     public Optional<Double> getCurrentPageTime(){
         var sDouble = executeJSAndGetResult("performance.now()");
@@ -193,7 +184,7 @@ public class NoDriver{
     }
 
     public WebElement findElement(By by){
-        return new WebElement(by);
+        return new WebElement(this, by);
     }
 
     public List<WebElement> findElements(By by) {
@@ -211,7 +202,7 @@ public class NoDriver{
                 int arrayLen = Integer.parseInt(len);
                 for (int i = 0; i < arrayLen; i++) {
                     String elementJS = String.format("%s[%d]", jsArrayExpression, i);
-                    elements.add(new WebElement(elementJS));
+                    elements.add(new WebElement(this, elementJS));
                 }
             } catch (NumberFormatException e) {
                 logger.error("Failed to parse array length", e);

@@ -38,8 +38,8 @@ public class XDO {
 
         driver.getNavigation().loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
         click(100, 100);
-        var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent(driver);
-        var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent(driver);
+        var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent();
+        var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent();
         if (!xDivContent.isPresent() || !yDivContent.isPresent()) return false;
         logger.warning(String.format("Real x = %s; Real y = %s", xDivContent.get(), yDivContent.get()));
 
