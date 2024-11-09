@@ -41,7 +41,7 @@ public class WebElement {
         this.getContentJs = elementJs + ".innerHTML";
     }
 
-    public Boolean isExists(NoDriver driver){
+    public Boolean isExists(){
         var result = driver.executeJSAndGetResult(isExistsJs);
         return result.map((jsResult) ->{
             try {

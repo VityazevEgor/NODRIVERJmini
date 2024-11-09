@@ -12,7 +12,7 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        exampleCopilotAuth();
+        testCloudFlareBypass();
     }
 
     public static void exampleCopilotAuth() throws IOException{
@@ -30,7 +30,7 @@ public class Application {
         var waitForSignInButton = new WaitTask() {
             @Override
             public Boolean condition() {
-                return signInButton.isExists(driver);
+                return signInButton.isExists();
             }
         };
         if (!waitForSignInButton.execute(5, 400)) {
@@ -52,7 +52,7 @@ public class Application {
         var waitForLoginInput = new WaitTask() {
             @Override
             public Boolean condition() {
-                return loginInput.isExists(driver);
+                return loginInput.isExists();
             }
         };
         if (!waitForLoginInput.execute(5, 400)) {
@@ -63,7 +63,7 @@ public class Application {
         // Вводим email и нажимаем кнопку "Далее"
         driver.getInput().enterText(loginInput, "test@gmail.com");
         var loginButton = driver.findElement(By.id("idSIButton9"));
-        if (loginButton.isExists(driver)) {
+        if (loginButton.isExists()) {
             driver.getInput().emulateClick(loginButton);
         }
 

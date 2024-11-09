@@ -59,7 +59,7 @@ public static void exampleCopilotAuth() throws IOException{
         var waitForSignInButton = new WaitTask() {
             @Override
             public Boolean condition() {
-                return signInButton.isExists(driver);
+                return signInButton.isExists();
             }
         };
         if (!waitForSignInButton.execute(5, 400)) {
@@ -81,7 +81,7 @@ public static void exampleCopilotAuth() throws IOException{
         var waitForLoginInput = new WaitTask() {
             @Override
             public Boolean condition() {
-                return loginInput.isExists(driver);
+                return loginInput.isExists();
             }
         };
         if (!waitForLoginInput.execute(5, 400)) {
@@ -92,7 +92,7 @@ public static void exampleCopilotAuth() throws IOException{
         // Вводим email и нажимаем кнопку "Далее"
         driver.getInput().enterText(loginInput, "test@gmail.com");
         var loginButton = driver.findElement(By.id("idSIButton9"));
-        if (loginButton.isExists(driver)) {
+        if (loginButton.isExists()) {
             driver.getInput().emulateClick(loginButton);
         }
 
