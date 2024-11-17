@@ -12,7 +12,7 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        testCloudFlareBypass();
+        exampleCopilotAuth();
     }
 
     public static void exampleCopilotAuth() throws IOException{

@@ -4,6 +4,10 @@ public abstract class By {
     public abstract String getJavaScript();
     public abstract String getMultiJavaScript();
 
+    public String replaceQuotes(String input){
+        return input.replace("'", "\"");
+    }
+
     public static By id(String id) {
         return new ById(id);
     }
@@ -34,7 +38,7 @@ public abstract class By {
 
         @Override
         public String getMultiJavaScript() {
-            throw new UnsupportedOperationException("Unimplemented method 'getMultiJavaScript' cuz there can not be multipale elements with the same id");
+            throw new UnsupportedOperationException("Unimplemented method 'getMultiJavaScript' cuz there can not be multiple elements with the same id");
         }
     }
 
@@ -47,12 +51,12 @@ public abstract class By {
 
         @Override
         public String getJavaScript() {
-            return String.format("document.querySelector('%s')", query);
+            return String.format("document.querySelector('%s')", replaceQuotes(query));
         }
 
         @Override
         public String getMultiJavaScript() {
-            return String.format("document.querySelectorAll('%s')", query);
+            return String.format("document.querySelectorAll('%s')", replaceQuotes(query));
         }
     }
 
@@ -65,12 +69,12 @@ public abstract class By {
 
         @Override
         public String getJavaScript() {
-            return String.format("document.getElementsByClassName('%s')[0]", className);
+            return String.format("document.getElementsByClassName('%s')[0]", replaceQuotes(className));
         }
 
         @Override
         public String getMultiJavaScript() {
-            return String.format("document.getElementsByClassName('%s')", className);
+            return String.format("document.getElementsByClassName('%s')", replaceQuotes(className));
         }
     }
 
@@ -83,12 +87,12 @@ public abstract class By {
 
         @Override
         public String getJavaScript() {
-            return String.format("document.getElementsByName('%s')[0]", name);
+            return String.format("document.getElementsByName('%s')[0]", replaceQuotes(name));
         }
 
         @Override
         public String getMultiJavaScript() {
-            return String.format("document.getElementsByName('%s')", name);
+            return String.format("document.getElementsByName('%s')", replaceQuotes(name));
         }
     }
 }

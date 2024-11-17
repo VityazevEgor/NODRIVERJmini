@@ -15,6 +15,7 @@ public class WebElement {
     private String getPositionJs;
     private String isClickableJs;
     private String getContentJs;
+    private String getTextJs;
     private String getSizeJs;
     private String isExistsJs;
 
@@ -39,6 +40,7 @@ public class WebElement {
         this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
         this.isExistsJs = Shared.readResource("elementsJS/isElementExists.js").get().replace("REPLACE_ME", elementJs);
         this.getContentJs = elementJs + ".innerHTML";
+        this.getTextJs = elementJs + ".textContent";
     }
 
     public Boolean isExists(){
@@ -97,6 +99,10 @@ public class WebElement {
 
     public Optional<String> getHTMLContent(){
         return driver.executeJSAndGetResult(getContentJs);
+    }
+
+    public Optional<String> getText(){
+        return driver.executeJSAndGetResult(getTextJs);
     }
 
     public Boolean isClickable(){
