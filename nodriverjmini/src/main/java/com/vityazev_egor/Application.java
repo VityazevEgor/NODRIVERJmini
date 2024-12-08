@@ -17,6 +17,7 @@ public class Application {
 
     public static void exampleCopilotAuth() throws IOException{
         NoDriver driver = new NoDriver("127.0.0.1:2080");
+        driver.getMisc().clearCookies();
         System.out.println("Auth result = " + copilotAuth(driver));
         waitEnter();
         driver.exit();
@@ -40,12 +41,12 @@ public class Application {
         driver.getInput().emulateClick(signInButton);
 
         // Проверяем наличие второй кнопки "Sign in" после раскрытия меню
-        var signInButtons = driver.findElements(By.cssSelector("button[title=\"Sign in\"]"));
-        if (signInButtons.size() < 2) {
-            System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
-            return false;
-        }
-        driver.getInput().emulateClick(signInButtons.get(1));
+        // var signInButtons = driver.findElements(By.cssSelector("button[title=\"Sign in\"]"));
+        // if (signInButtons.size() < 2) {
+        //     System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
+        //     return false;
+        // }
+        // driver.getInput().emulateClick(signInButtons.get(1));
 
         // Ожидаем появления поля для ввода логина
         var loginInput = driver.findElement(By.name("loginfmt"));
@@ -145,7 +146,7 @@ public class Application {
 
     @SuppressWarnings("unused")
     private static void testCloudFlareBypass() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver("127.0.0.1:2080");
+        NoDriver d = new NoDriver();
         d.getMisc().clearCookies();
         d.getXdo().calibrate();
         var result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
