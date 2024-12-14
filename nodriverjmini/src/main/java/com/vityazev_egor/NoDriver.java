@@ -61,7 +61,7 @@ public class NoDriver{
             "google-chrome", 
             "--remote-debugging-port=9222", 
             "--remote-allow-origins=*", 
-            "--disable-gpu",
+            //"--disable-gpu",
             "--window-size=1280,1060",
             "--no-first-run",
             "--no-default-browser-check",

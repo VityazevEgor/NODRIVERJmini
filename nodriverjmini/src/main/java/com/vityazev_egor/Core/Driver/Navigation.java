@@ -1,5 +1,7 @@
 package com.vityazev_egor.Core.Driver;
 
+import java.util.function.BiConsumer;
+
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
@@ -36,15 +38,14 @@ public class Navigation {
         return task.execute(timeOutSeconds, 500);
     }
 
-    // works even if u use proxy
-    public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
+    public Boolean loadUrlAndBypassCF(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds, BiConsumer<Integer, Integer> clickAction) {
         Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
         if (!loadResult) return false;
 
         var html = driver.getHtml();
         if (!html.isPresent()) return false;
 
-        if (html.get().contains("ray-id")){
+        if (html.get().contains("ray-id")) {
             logger.warning("Detected CloudFlare");
             var task = new WaitTask() {
 
@@ -54,68 +55,40 @@ public class Navigation {
                     var currentTitle = driver.getTitle();
                     if (!currentHtml.isPresent() || !currentTitle.isPresent()) return false;
 
-                    if (currentHtml.get().contains("ray-id") || currentTitle.get().contains("Just a moment")){
+                    if (currentHtml.get().contains("ray-id") || currentTitle.get().contains("Just a moment")) {
                         var spacer = driver.findElement(By.cssSelector("div[style*=\"display: grid;\"]"));
                         var spacerPoint = spacer.getPosition();
                         var spacerSize = spacer.getSize();
-                        if (!spacerPoint.isPresent() || !spacerSize.isPresent()){
+                        if (!spacerPoint.isPresent() || !spacerSize.isPresent()) {
                             logger.info("Spacer div is still loading...");
                             return false;
                         }
-                        
-                        Integer realX = spacerPoint.get().x - spacerSize.get().width/2 + 30;
-                        driver.getXdo().click(realX, spacerPoint.get().y);
+
+                        Integer realX = spacerPoint.get().x - spacerSize.get().width / 2 + 30;
+                        clickAction.accept(realX, spacerPoint.get().y);
                         return false;
-                    }
-                    else{
+                    } else {
                         return true;
                     }
                 }
-                
             };
+
+            // Step 6: Execute the wait task
             return task.execute(cfBypassTimeOutSeconds, 1000);
-        }
-        else{
+        } else {
             logger.warning("There is no CloudFlare");
             return true;
         }
     }
-    
-    // works only if ur IP is not related to hsoting IPs
-    // public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds){
-    //     Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
-    //     if (!loadResult) return false;
 
-    //     var html = getHtml();
-    //     if (!html.isPresent()) return false;
+    // works even if u use proxy
+    public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
+        return loadUrlAndBypassCF(url, urlLoadTimeOutSeconds, cfBypassTimeOutSeconds, driver.getXdo()::click);
+    }
 
-    //     if (html.get().contains("ray-id")){
-    //         logger.warning("Detected CloudFlare");
-    //         var task = new WaitTask(){
-
-    //             @Override
-    //             public Boolean condition() {
-    //                 var currentHtml = getHtml();
-    //                 if (!currentHtml.isPresent()) return false;
-    //                 var currentPageTime = getCurrentPageTime();
-    //                 if (!currentPageTime.isPresent()) return false;
-    //                 if (currentHtml.get().contains("ray-id")){
-    //                     socketClient.sendCommand(cmdProcessor.genMouseClick(190, 287, currentPageTime.get()));
-    //                     return false;
-    //                 }
-    //                 else{
-    //                     return true;
-    //                 }
-    //             }
-                
-    //         };
-    //         return task.execute(cfBypassTimeOutSeconds, 1000);
-    //     }
-    //     else{
-    //         logger.warning("There is no CloudFlare");
-    //         return true;
-    //     }
-    // }
-
+    // works only if you ip is clean
+    public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
+        return loadUrlAndBypassCF(url, urlLoadTimeOutSeconds, cfBypassTimeOutSeconds, driver.getInput()::emulateClick);
+    }
 
 }

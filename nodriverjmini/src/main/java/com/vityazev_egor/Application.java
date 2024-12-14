@@ -16,7 +16,7 @@ public class Application {
     }
 
     public static void exampleCopilotAuth() throws IOException{
-        NoDriver driver = new NoDriver("127.0.0.1:2080");
+        NoDriver driver = new NoDriver();
         driver.getMisc().clearCookies();
         System.out.println("Auth result = " + copilotAuth(driver));
         waitEnter();

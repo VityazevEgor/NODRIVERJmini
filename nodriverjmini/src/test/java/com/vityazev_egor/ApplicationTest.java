@@ -5,12 +5,34 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 class ApplicationTest {
 
     @Test
-    void shouldAnswerWithTrue() {
-        assertTrue(true);
+    void testCFBypassXDO() throws IOException{
+        NoDriver d = new NoDriver("127.0.0.1:2080");
+        d.getXdo().calibrate();
+        Boolean result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
+        d.exit();
+        assertTrue(result);
+    }
+
+    @Test
+    void testCFBypassCDP()throws IOException{
+        NoDriver d = new NoDriver();
+        Boolean result = d.getNavigation().loadUrlAndBypassCFCDP("https://nopecha.com/demo/cloudflare", 10, 30);
+        d.exit();
+        assertTrue(result);
+    }
+
+    @Test
+    void testAntiBot() throws IOException{
+        NoDriver d = new NoDriver("127.0.0.1:2080");
+        Boolean result = d.getNavigation().loadUrlAndWait("https://bot.sannysoft.com/", 10);
+        d.getMisc().captureScreenshot(Paths.get("antibot.png"));
+        d.exit();
+        assertTrue(result);
     }
 
     @Test
