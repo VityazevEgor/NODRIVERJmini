@@ -1,13 +1,20 @@
 package com.vityazev_egor.Core.WebElements;
 
-import java.awt.Point;
+import java.awt.image.BufferedImage;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Optional;
+
+import org.apache.commons.imaging.Imaging;
+
 import java.awt.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.Shared;
+import com.vityazev_egor.Core.WaitTask;
 
 public class WebElement {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -18,6 +25,7 @@ public class WebElement {
     private String getTextJs;
     private String getSizeJs;
     private String isExistsJs;
+    private String getScreenShot;
 
     private final String elementJs;
     private final NoDriver driver;
@@ -39,8 +47,36 @@ public class WebElement {
         this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", elementJs);
         this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
         this.isExistsJs = Shared.readResource("elementsJS/isElementExists.js").get().replace("REPLACE_ME", elementJs);
+        // TESTING
+        this.getScreenShot = Shared.readResource("elementsJS/takeScreenshot.js").get().replace("REPLACE_ME", elementJs);
+        // TESTING
         this.getContentJs = elementJs + ".innerHTML";
         this.getTextJs = elementJs + ".textContent";
+    }
+
+    // NOT WORKING EVERYWHERE | TESTING
+    public Optional<BufferedImage> testScreenshot(){
+        driver.executeJS(getScreenShot);
+        var base64Div = driver.findElement(By.id("base64image"));
+        WaitTask waitTask = new WaitTask() {
+            @Override
+            public Boolean condition() {
+                return base64Div.isExists() && base64Div.getText().filter(text -> text.length() > 4).isPresent();
+            }
+        };
+
+        if (!waitTask.execute(5, 100)) {
+            System.out.println("Could not get screenshot in time");
+            return Optional.empty();
+        }
+        try{
+            byte[] imageBytes = Base64.getDecoder().decode(base64Div.getText().orElseThrow());
+            Files.write(Paths.get("web.png"), imageBytes);
+            return Optional.of(Imaging.getBufferedImage(imageBytes));
+        }catch (Exception ex){
+            ex.printStackTrace();
+            return Optional.empty();
+        }
     }
 
     public Boolean isExists(){

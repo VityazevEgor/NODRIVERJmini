@@ -16,7 +16,7 @@ public class Application {
     }
 
     public static void exampleCopilotAuth() throws IOException{
-        NoDriver driver = new NoDriver();
+        NoDriver driver = new NoDriver("127.0.0.1:2080");
         driver.getMisc().clearCookies();
         System.out.println("Auth result = " + copilotAuth(driver));
         waitEnter();
@@ -63,6 +63,7 @@ public class Application {
 
         // Вводим email и нажимаем кнопку "Далее"
         driver.getInput().enterText(loginInput, "test@gmail.com");
+        System.out.println("Writing text");
         var loginButton = driver.findElement(By.id("idSIButton9"));
         if (loginButton.isExists()) {
             driver.getInput().emulateClick(loginButton);

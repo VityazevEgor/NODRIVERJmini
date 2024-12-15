@@ -3,13 +3,18 @@ package com.vityazev_egor.Core.Driver;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.imaging.Imaging;
 
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.CustomLogger;
+import com.vityazev_egor.Core.Shared;
+import com.vityazev_egor.Core.WaitTask;
+import com.vityazev_egor.Core.WebElements.By;
 
 public class Misc {
     private final NoDriver driver;
@@ -45,4 +50,56 @@ public class Misc {
     public void clearCookies(){
         driver.getSocketClient().sendCommand(driver.getCmdProcessor().genClearCookies());
     }
+    
+    public void setBypassCDP(Boolean enabled){
+        driver.getSocketClient().sendCommand(driver.getCmdProcessor().genBypassCSP(enabled));
+    }
+
+    public Optional<BufferedImage> htmlToImage(Optional<String> optionalHTML) {
+        if (!optionalHTML.isPresent()) return Optional.empty();
+        String html = optionalHTML.get();
+        try {
+            // Генерация временного HTML файла
+            String htmlFileName = UUID.randomUUID().toString() + ".html";
+            Path htmlFilePath = Paths.get(System.getProperty("user.dir"), htmlFileName).toAbsolutePath();
+            String htmlPageContent = Shared.readResource("fullPageScreen.html")
+                    .orElseThrow(() -> new IllegalStateException("Template not found"))
+                    .replace("PASTEHTMLHERE", html);
+            Files.writeString(htmlFilePath, htmlPageContent);
+    
+            logger.warning("File created: " + htmlFilePath);
+            
+            // Загрузка файла в браузер
+            driver.getNavigation().loadUrlAndWait("file://" + htmlFilePath, 5);
+    
+            // Выполнение скрипта для захвата скриншота
+            Shared.sleep(1000);
+            String captureJS = Shared.readResource("miscJS/capturePage.js")
+                    .orElseThrow(() -> new IllegalStateException("JS script not found"));
+            driver.executeJS(captureJS);
+    
+            // Ожидание, пока base64 строка не будет готова
+            var base64Div = driver.findElement(By.id("base64image"));
+            WaitTask waitTask = new WaitTask() {
+                @Override
+                public Boolean condition() {
+                    return base64Div.isExists() && base64Div.getText().filter(text -> text.length() > 4).isPresent();
+                }
+            };
+    
+            if (!waitTask.execute(2, 100)) {
+                return Optional.empty();
+            }
+    
+            // Декодирование base64 в изображение
+            byte[] imageBytes = Base64.getDecoder().decode(base64Div.getText().orElseThrow());
+            Files.deleteIfExists(htmlFilePath);
+    
+            return Optional.of(Imaging.getBufferedImage(imageBytes));
+        } catch (Exception ex) {
+            logger.error("Failed to capture HTML as image", ex);
+            return Optional.empty();
+        }
+    }
+    
 }

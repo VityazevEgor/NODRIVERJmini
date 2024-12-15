@@ -19,6 +19,16 @@ public class Input {
         driver.getSocketClient().sendCommand(driver.getCmdProcessor().genMouseMove(x, y));
     }
 
+    // NOT WORKING | TESTING
+    public void emulateMouseWheel(Integer deltaY, Integer x, Integer y){
+        driver.getSocketClient().sendCommand(driver.getCmdProcessor().genMouseWheel(deltaY, x, y));
+    }
+
+    public void emulateEndClick(){
+        driver.getSocketClient().sendCommand(driver.getCmdProcessor().genKeyInput());
+    }
+    // NOT WORKING | TESTING
+
     public void emulateClick(Integer x, Integer y){
         String[] json = driver.getCmdProcessor().genMouseClick(x, y);
         driver.getSocketClient().sendCommand(json[0]);

@@ -133,6 +133,33 @@ public class CommandsProcessor {
         return jsonMoved;
     }
 
+    // NOT WORKING FOR SOME REASON
+    public String genMouseWheel(int deltaY, int x, int y){
+        ObjectNode paramsPressed = objectMapper.createObjectNode();
+        paramsPressed.put("type", "mouseWheel");
+        paramsPressed.put("x", x);
+        paramsPressed.put("y", y);
+        paramsPressed.put("deltaX", 0);
+        paramsPressed.put("deltaY", deltaY);
+        paramsPressed.put("modifiers", 0);
+        paramsPressed.put("button", "middle");
+        paramsPressed.put("buttons", 0);
+
+        ObjectNode requestPressed = buildBase("Input.dispatchMouseEvent", paramsPressed);
+        String jsonMoved = serializeNode(requestPressed);
+
+        return jsonMoved;
+    }
+
+    public String genBypassCSP(Boolean enabled){
+        ObjectNode params = objectMapper.createObjectNode();
+        params.put("enabled", enabled);
+
+        ObjectNode request = buildBase("Page.setBypassCSP", params);
+
+        return serializeNode(request);
+    }
+
     public List<String> genTextInput(String text, String elementId){
         List<String> result = new ArrayList<>();
         if (elementId != null){
@@ -182,15 +209,15 @@ public class CommandsProcessor {
     public String[] genKeyInput(){
         ObjectNode paramsChar = objectMapper.createObjectNode();
         paramsChar.put("type", "keyDown");
-        paramsChar.put("key", "d");
-        paramsChar.put("code", "KeyD");
-        paramsChar.put("keyCode", 68);
+        paramsChar.put("key", "End");
+        paramsChar.put("code", "End");
+        paramsChar.put("keyCode", 35);
         paramsChar.put("modifiers", 0); // Предположим, что модификаторов нет
-        paramsChar.put("timestamp", 1396.8999999999069);
-        paramsChar.put("unmodifiedText", "d");
-        paramsChar.put("keyIdentifier", "KeyD");
-        paramsChar.put("windowsVirtualKeyCode", 68);
-        paramsChar.put("nativeVirtualKeyCode", 68);
+        //paramsChar.put("timestamp", 1396.8999999999069);
+        // paramsChar.put("unmodifiedText", "d");
+        // paramsChar.put("keyIdentifier", "KeyD");
+        // paramsChar.put("windowsVirtualKeyCode", 68);
+        // paramsChar.put("nativeVirtualKeyCode", 68);
         paramsChar.put("autoRepeat", false);
         paramsChar.put("isKeypad", false);
         paramsChar.put("isSystemKey", true);
@@ -198,15 +225,15 @@ public class CommandsProcessor {
 
         ObjectNode paramsChar2 = objectMapper.createObjectNode();
         paramsChar2.put("type", "keyUp");
-        paramsChar2.put("key", "d");
-        paramsChar2.put("code", "KeyD");
-        paramsChar2.put("keyCode", 68);
+        paramsChar2.put("key", "End");
+        paramsChar2.put("code", "End");
+        paramsChar2.put("keyCode", 35);
         paramsChar2.put("modifiers", 0); // Предположим, что модификаторов нет
-        paramsChar2.put("timestamp", 1591.8999999999069);
-        paramsChar2.put("unmodifiedText", "d");
-        paramsChar2.put("keyIdentifier", "KeyD");
-        paramsChar2.put("windowsVirtualKeyCode", 68);
-        paramsChar2.put("nativeVirtualKeyCode", 68);
+        //paramsChar2.put("timestamp", 1591.8999999999069);
+        // paramsChar2.put("unmodifiedText", "d");
+        // paramsChar2.put("keyIdentifier", "KeyD");
+        // paramsChar2.put("windowsVirtualKeyCode", 68);
+        // paramsChar2.put("nativeVirtualKeyCode", 68);
         paramsChar2.put("autoRepeat", false);
         paramsChar2.put("isKeypad", false);
         paramsChar2.put("isSystemKey", true);

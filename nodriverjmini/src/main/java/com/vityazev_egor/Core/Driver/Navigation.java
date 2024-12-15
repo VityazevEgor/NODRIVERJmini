@@ -22,6 +22,14 @@ public class Navigation {
         driver.getSocketClient().sendCommand(json);
     }
 
+    public void goBack(){
+        driver.executeJS("window.history.back()");
+    }
+
+    public void goForward(){
+        driver.executeJS("window.history.forward()");
+    }
+
     public Boolean loadUrlAndWait(String url, Integer timeOutSeconds){
         loadUrl(url);
         Shared.sleep(500); // we need give some time for browser to start loading of page
@@ -73,7 +81,6 @@ public class Navigation {
                 }
             };
 
-            // Step 6: Execute the wait task
             return task.execute(cfBypassTimeOutSeconds, 1000);
         } else {
             logger.warning("There is no CloudFlare");
