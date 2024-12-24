@@ -1,7 +1,6 @@
 package com.vityazev_egor;
 
 import java.awt.Dimension;
-import java.awt.Point;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -175,12 +174,7 @@ public class NoDriver{
         String json = cmdProcessor.genExecuteJs(js);
         //System.out.println(json);
         var response = socketClient.sendAndWaitResult(2, json);
-        if (response.isPresent()){
-            return cmdProcessor.getJsResult(response.get());
-        }
-        else{
-            return Optional.empty();
-        }
+        return response.map(r -> cmdProcessor.getJsResult(r)).orElse(Optional.empty());
     }
 
     public WebElement findElement(By by){
@@ -214,6 +208,7 @@ public class NoDriver{
     public void exit(){
         logger.warning("Closing chrome");
         socketClient.sendCommand(cmdProcessor.genCloseBrowser());
+        socketClient.closeSession();
         try {
             chrome.waitFor();
         } catch (Exception e) {}

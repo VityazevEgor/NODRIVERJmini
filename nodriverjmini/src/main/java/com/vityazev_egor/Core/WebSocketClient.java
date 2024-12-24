@@ -1,5 +1,6 @@
 package com.vityazev_egor.Core;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,6 +141,15 @@ public class WebSocketClient {
             logger.warning("I could not find response with id = " + messageId.get());
             awaitedMessages.remove(awaitedMessage); // удаляем ожидающее сообщение
             return Optional.empty();
+        }
+    }
+
+    public void closeSession(){
+        try {
+            session.close();
+        } catch (IOException e) {
+            logger.error("Can't close session for some reason....", e);;
+            e.printStackTrace();
         }
     }
     

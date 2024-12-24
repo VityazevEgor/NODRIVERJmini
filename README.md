@@ -55,7 +55,7 @@ public static void exampleCopilotAuth() throws IOException{
         driver.getNavigation().loadUrlAndWait("https://copilot.microsoft.com/", 10);
 
         // Ожидаем и нажимаем на первую кнопку "Sign in"
-        var signInButton = driver.findElement(By.cssSelector("button[title=\"Sign in\"]"));
+        var signInButton = driver.findElement(By.cssSelector("button[title='Sign in']"));
         var waitForSignInButton = new WaitTask() {
             @Override
             public Boolean condition() {
@@ -69,7 +69,7 @@ public static void exampleCopilotAuth() throws IOException{
         driver.getInput().emulateClick(signInButton);
 
         // Проверяем наличие второй кнопки "Sign in" после раскрытия меню
-        var signInButtons = driver.findElements(By.cssSelector("button[title=\"Sign in\"]"));
+        var signInButtons = driver.findElements(By.cssSelector("button[title='Sign in']"));
         if (signInButtons.size() < 2) {
             System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
             return false;
