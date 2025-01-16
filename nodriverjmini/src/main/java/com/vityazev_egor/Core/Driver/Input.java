@@ -1,7 +1,5 @@
 package com.vityazev_egor.Core.Driver;
 
-import java.util.List;
-
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.WebElements.WebElement;
@@ -49,16 +47,18 @@ public class Input {
         emulateClick(position.get().getX(), position.get().getY());
     }
 
-    public void enterText(String text, String elementId){
-        List<String> jsons = driver.getCmdProcessor().genTextInput(text, elementId);
-        for (String json : jsons){
-            driver.getSocketClient().sendCommand(json);
-        }
-    }
-
     public void enterText(WebElement element, String text){
         element.getFocus();
         var list = driver.getCmdProcessor().genTextInput(text);
-        driver.getSocketClient().sendCommand(list);
+        // driver.getSocketClient().sendCommand(list);
+        for (String json : list){
+            driver.getSocketClient().sendAndWaitResult(1, json, 15);
+        }
+    }
+
+    public void insertText(WebElement element, String text){
+        element.getFocus();
+        var json = driver.getCmdProcessor().genInsertText(text);
+        driver.getSocketClient().sendCommand(json);
     }
 }

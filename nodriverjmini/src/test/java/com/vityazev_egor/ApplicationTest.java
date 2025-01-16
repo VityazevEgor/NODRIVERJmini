@@ -95,6 +95,27 @@ class ApplicationTest {
     }
 
     @Test
+    void testTextEntering() throws IOException, InterruptedException
+    {
+        NoDriver d = new NoDriver();
+        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
+        var input = d.findElement(By.id("text"));
+        d.getInput().enterText(input, "Test");
+        Thread.sleep(2000);
+        d.exit();
+    }
+
+    @Test
+    void testInsertText() throws IOException, InterruptedException{
+        NoDriver d = new NoDriver();
+        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
+        var input = d.findElement(By.id("text"));
+        d.getInput().insertText(input, "Test");
+        Thread.sleep(5000);
+        d.exit();
+    }
+
+    @Test
     void testJs() throws IOException{
         NoDriver d = new NoDriver();
         var title = d.getTitle();

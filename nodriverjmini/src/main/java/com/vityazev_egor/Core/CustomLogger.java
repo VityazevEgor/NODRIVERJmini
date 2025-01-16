@@ -9,6 +9,7 @@ public class CustomLogger {
     private final String ANSI_RED = "\u001B[31m";
     private final String ANSI_GREEN = "\u001B[32m";
     private final String ANSI_YELLOW = "\u001B[33m";
+    private final Boolean DEBUG = false;
     
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -22,7 +23,9 @@ public class CustomLogger {
     }
 
     public void info(String message) {
-        System.out.println(formatMessage("INFO", ANSI_GREEN, message));
+        if (DEBUG){
+            System.out.println(formatMessage("INFO", ANSI_GREEN, message));
+        }
     }
 
     public void warning(String message) {

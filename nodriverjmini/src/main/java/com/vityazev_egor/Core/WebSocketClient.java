@@ -61,7 +61,7 @@ public class WebSocketClient {
         }
         // теперь мы смотрим нету ли в списке ожидаемых сообщений такого id
         // если есть, то записываем в него сообщение
-        System.out.println("Amount of awaited messages = " + awaitedMessages.size());
+        logger.info("Amount of awaited messages = " + awaitedMessages.size());
         AwaitedMessage awaitedMessage = awaitedMessages.stream()
                 .filter(x -> x.getId().equals(messageId.get()))
                 .findFirst()
@@ -75,7 +75,7 @@ public class WebSocketClient {
         if (messageCut.length() > 150){
             messageCut = messageCut.substring(0, 150);
         }
-        logger.info("Received message with type content = " + messageCut);
+        logger.info("Received message with content = " + messageCut);
     }
 
     @OnError
@@ -112,7 +112,7 @@ public class WebSocketClient {
         }
     }
 
-    public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
+    public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json, Integer delayMilis){
         Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(json);
         if (!messageId.isPresent()) return Optional.empty();
         
@@ -131,7 +131,7 @@ public class WebSocketClient {
         };
         sendCommand(json);
 
-        var result = task.execute(timeOutSeconds, 50);
+        var result = task.execute(timeOutSeconds, delayMilis);
         if (result){
             logger.info("I found response with id = " + messageId.get());
             awaitedMessages.remove(awaitedMessage); // удаляем ожидающее сообщение
@@ -142,6 +142,10 @@ public class WebSocketClient {
             awaitedMessages.remove(awaitedMessage); // удаляем ожидающее сообщение
             return Optional.empty();
         }
+    }
+
+    public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
+        return sendAndWaitResult(timeOutSeconds, json, 50);
     }
 
     public void closeSession(){

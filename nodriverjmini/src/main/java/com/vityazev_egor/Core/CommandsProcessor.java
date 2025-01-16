@@ -185,6 +185,13 @@ public class CommandsProcessor {
         return genTextInput(text, null);
     }
 
+    public String genInsertText(String text){
+        ObjectNode params = objectMapper.createObjectNode();
+        params.put("text", text);
+        ObjectNode request = buildBase("Input.insertText", params);
+        return serializeNode(request);
+    }
+
     public String genCaptureScreenshot(){
         ObjectNode params = objectMapper.createObjectNode();
         params.put("format", "png");
