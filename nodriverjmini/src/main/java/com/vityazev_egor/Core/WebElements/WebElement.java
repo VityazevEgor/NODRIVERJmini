@@ -25,6 +25,7 @@ public class WebElement {
     private String getTextJs;
     private String getSizeJs;
     private String isExistsJs;
+    private String getValueJs;
     private String getScreenShot;
 
     private final String elementJs;
@@ -47,11 +48,13 @@ public class WebElement {
         this.getSizeJs = Shared.readResource("elementsJS/getSize.js").get().replace("REPLACE_ME", elementJs);
         this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
         this.isExistsJs = Shared.readResource("elementsJS/isElementExists.js").get().replace("REPLACE_ME", elementJs);
+        this.getContentJs = elementJs + ".innerHTML";
+        this.getTextJs = elementJs + ".textContent";
+        this.getValueJs = elementJs + ".value";
+
         // TESTING
         this.getScreenShot = Shared.readResource("elementsJS/takeScreenshot.js").get().replace("REPLACE_ME", elementJs);
         // TESTING
-        this.getContentJs = elementJs + ".innerHTML";
-        this.getTextJs = elementJs + ".textContent";
     }
 
     // NOT WORKING EVERYWHERE | TESTING
@@ -141,6 +144,10 @@ public class WebElement {
         return driver.executeJSAndGetResult(getTextJs);
     }
 
+    public Optional<String> getValue(){
+        return driver.executeJSAndGetResult(getValueJs);
+    }
+
     public Boolean isClickable(){
         var result = driver.executeJSAndGetResult(isClickableJs);
         if (!result.isPresent()) return false;
@@ -150,6 +157,19 @@ public class WebElement {
         } catch (Exception ex) {
             ex.printStackTrace();
             return false;
+        }
+    }
+
+    public void waitToAppear(Integer timeOutSeconds, Integer delayMilis) throws Exception {
+        WaitTask waitTask = new WaitTask() {
+            @Override
+            public Boolean condition() {
+                return isExists();
+            }
+        };
+
+        if (!waitTask.execute(timeOutSeconds, delayMilis)){
+            throw new Exception("Element not found: " + elementJs);
         }
     }
 }

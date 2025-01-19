@@ -38,22 +38,17 @@ public class Input {
     }
 
     public void emulateClick(WebElement element){
-        var position = element.getPosition();
-        if (!position.isPresent()){
-            logger.warning("Can't get element position to click");
-            return;
-        }
-
-        emulateClick(position.get().getX(), position.get().getY());
+        element.getPosition().ifPresentOrElse(
+            position -> emulateClick(position.getX(), position.getY()), 
+            () -> logger.error("Can't get element position")
+        );
     }
 
     public void enterText(WebElement element, String text){
         element.getFocus();
-        var list = driver.getCmdProcessor().genTextInput(text);
-        // driver.getSocketClient().sendCommand(list);
-        for (String json : list){
-            driver.getSocketClient().sendAndWaitResult(1, json, 15);
-        }
+        driver.getCmdProcessor().genTextInput(text).forEach(
+            json-> driver.getSocketClient().sendAndWaitResult(1, json, 15)
+        );
     }
 
     public void insertText(WebElement element, String text){

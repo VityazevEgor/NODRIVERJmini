@@ -38,4 +38,8 @@ public class CustomLogger {
             ex.printStackTrace();
         }
     }
+
+    public void error(String message) {
+        error(message, null);
+    }
 }

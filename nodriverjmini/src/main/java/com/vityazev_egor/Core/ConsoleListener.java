@@ -8,9 +8,12 @@ import java.util.List;
 
 import com.vityazev_egor.NoDriver;
 
+import lombok.Getter;
+
 public class ConsoleListener implements Runnable{
     private Process process = null;
     private Boolean logMessages = false;
+    @Getter
     private List<String> consoleMessages = new ArrayList<>();
 
     public ConsoleListener(Process p){
@@ -50,10 +53,5 @@ public class ConsoleListener implements Runnable{
 
     public long getPid(){
         return process.pid();
-    }
-
-    public List<String> getConsoleMessages(){
-        return consoleMessages;
-    }
-    
+    }    
 }
