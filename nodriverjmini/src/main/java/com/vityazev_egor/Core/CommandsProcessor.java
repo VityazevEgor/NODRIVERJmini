@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,16 +20,10 @@ public class CommandsProcessor {
         if (params != null) request.set("params", params);
         id++;
 
+        if (id > 2147483){
+            id = 1;
+        }
         return request;
-    }
-
-    public Integer getIdOfLastMessage(){
-        if (id>1){
-            return id - 1;
-        }
-        else{
-            return 1;
-        }
     }
 
     private String serializeNode(ObjectNode node){
@@ -39,14 +31,13 @@ public class CommandsProcessor {
         try {
             json = objectMapper.writeValueAsString(node);
         } catch (JsonProcessingException e) {
-            // it should always fork so i going to ignore errors
+            // it must always fork so i going to ignore errors
             e.printStackTrace();
         }
 
         return json;
     }
 
-    @Nullable
     public String genLoadUrl(String url){
         ObjectNode params = objectMapper.createObjectNode();
         params.put("url", url);

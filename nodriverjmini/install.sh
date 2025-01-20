@@ -17,7 +17,7 @@ fi
 mvn install:install-file -Dfile="$jar_file" \
   -DgroupId=com.vityazev_egor \
   -DartifactId=nodriverjmini \
-  -Dversion=1.0 \
+  -Dversion=1.1 \
   -Dpackaging=jar \
   -Dname=nodriverjmini
 

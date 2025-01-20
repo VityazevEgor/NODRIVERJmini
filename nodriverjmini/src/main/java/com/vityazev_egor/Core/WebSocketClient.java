@@ -5,6 +5,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.vityazev_egor.Core.WaitTask.TimeOutException;
+
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
@@ -15,6 +18,7 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @ClientEndpoint
@@ -22,18 +26,15 @@ public class WebSocketClient {
     private Session session;
     private final CustomLogger logger = new CustomLogger(WebSocketClient.class.getName());
     private final CommandsProcessor cmdProcessor = new CommandsProcessor();
-    private ArrayList<AwaitedMessage> awaitedMessages = new ArrayList<>();
+    private List<AwaitedMessage> awaitedMessages = new ArrayList<>();
 
     @Getter
     @Setter
+    @NoArgsConstructor
     private class AwaitedMessage {
-        private final Integer id;
+        private Integer id;
         private String message;
         private Boolean isAccepted = false;
-
-        public AwaitedMessage(Integer id){
-            this.id = id;
-        }
     }
 
     public WebSocketClient(String url) throws Exception {
@@ -50,37 +51,25 @@ public class WebSocketClient {
 
     @OnMessage
     public void onMessage(String message) {
-
-        Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(message);
-        if (messageId.isPresent()){
-            logger.info("I parse id of message = " + messageId.get());
-        }
-        else{
-            logger.error("I could not parse id from this message", null);
-            return;
-        }
-        // теперь мы смотрим нету ли в списке ожидаемых сообщений такого id
-        // если есть, то записываем в него сообщение
-        logger.info("Amount of awaited messages = " + awaitedMessages.size());
-        AwaitedMessage awaitedMessage = awaitedMessages.stream()
-                .filter(x -> x.getId().equals(messageId.get()))
-                .findFirst()
-                .orElse(null);
-        if (awaitedMessage != null){
-            awaitedMessage.setMessage(message);
-            awaitedMessage.setIsAccepted(true);
-        }
-
-        String messageCut = message;
-        if (messageCut.length() > 150){
-            messageCut = messageCut.substring(0, 150);
-        }
-        logger.info("Received message with content = " + messageCut);
+        cmdProcessor.parseIdFromCommand(message).ifPresentOrElse(
+            messageId ->{
+                logger.info("Amount of awaited messages = " + awaitedMessages.size());
+                awaitedMessages.stream()
+                        .filter(x -> x.getId().equals(messageId))
+                        .findFirst()
+                        .ifPresent(awaitedMessage -> {
+                            awaitedMessage.setMessage(message);
+                            awaitedMessage.setIsAccepted(true);
+                        });
+            }, 
+            () -> logger.error("Could not patse id from this message: ")
+        );
+        logger.info(String.format("Received message with content = %s", message.length() > 150 ? message.substring(0, 150) : message));
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
-        System.err.println("Error occurred: " + throwable.getMessage());
+        logger.error("Error occurred: " + throwable.getMessage());
     }
 
     @OnClose
@@ -89,15 +78,7 @@ public class WebSocketClient {
     }
 
     public void sendCommand(String json) {
-        //System.out.println(json);
-        try{
-            session.getAsyncRemote().sendText(json);
-            logger.info("I sent the command: \n" + json);
-        }
-        catch (Exception ex){
-            logger.warning("Error in sendCommand method");
-            ex.printStackTrace();
-        }
+        sendAndWaitResult(2, json, 50);
     }
 
     public void sendCommand(String[] jsons){
@@ -113,34 +94,40 @@ public class WebSocketClient {
     }
 
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json, Integer delayMilis){
-        Optional<Integer> messageId = cmdProcessor.parseIdFromCommand(json);
-        if (!messageId.isPresent()) return Optional.empty();
-        
-        //регестрируем ождиание сообщения с определённым id
-        var awaitedMessage = new AwaitedMessage(messageId.get());
-        awaitedMessages.add(awaitedMessage);
-
-        // ждём пока ответ будет получен
-        var task = new WaitTask() {
-
-            @Override
-            public Boolean condition() {
-                return awaitedMessage.getIsAccepted();
-            }
+        final AwaitedMessage awaitedMessage = new AwaitedMessage();
+        try{
+            Integer messageId = cmdProcessor.parseIdFromCommand(json).orElseThrow(() -> new Exception("Can't parse id of command"));
+            logger.info("Sending message with id = " + messageId.toString());
             
-        };
-        sendCommand(json);
+            //регестрируем ожидание сообщения с определённым id
+            awaitedMessage.setId(messageId);
+            awaitedMessages.add(awaitedMessage);
 
-        var result = task.execute(timeOutSeconds, delayMilis);
-        if (result){
-            logger.info("I found response with id = " + messageId.get());
-            awaitedMessages.remove(awaitedMessage); // удаляем ожидающее сообщение
+            // ждём пока ответ будет получен
+            var task = new WaitTask() {
+
+                @Override
+                public Boolean condition() {
+                    return awaitedMessage.getIsAccepted();
+                }
+                
+            };
+            session.getAsyncRemote().sendText(json);
+
+            var result = task.execute(timeOutSeconds, delayMilis);
+            if (!result) throw new TimeOutException(String.format("Timeout during execution of task #%d", messageId));
+            
             return Optional.of(awaitedMessage.getMessage());
-        }
-        else{
-            logger.warning("I could not find response with id = " + messageId.get());
-            awaitedMessages.remove(awaitedMessage); // удаляем ожидающее сообщение
+        }catch (TimeOutException ex){
+            logger.error(ex.getMessage());
             return Optional.empty();
+        } 
+        catch (Exception ex){
+            logger.error("Error in sendAndWaitResult method", ex);
+            return Optional.empty();
+        }
+        finally{
+            awaitedMessages.remove(awaitedMessage);
         }
     }
 
@@ -152,7 +139,7 @@ public class WebSocketClient {
         try {
             session.close();
         } catch (IOException e) {
-            logger.error("Can't close session for some reason....", e);;
+            logger.error("Can't close session for some reason....", e);
             e.printStackTrace();
         }
     }

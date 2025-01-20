@@ -54,7 +54,7 @@ public class NoDriver{
     @Getter
     private final Misc misc;
 
-    public NoDriver(String socks5Proxy) throws IOException{
+    public NoDriver(String socks5Proxy, Boolean enableHeadless) throws IOException{
         // запускаем браузер и перехватываем вывод в консоли
         ProcessBuilder browser = new ProcessBuilder(
             "google-chrome", 
@@ -71,6 +71,9 @@ public class NoDriver{
         if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
             // Добавляем аргумент для прокси без кавычек вокруг URL
             browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        }
+        if (enableHeadless){
+            browser.command().add("--headless");
         }
         browser.redirectErrorStream(true);
         chrome = browser.start();
@@ -92,7 +95,11 @@ public class NoDriver{
     }
 
     public NoDriver() throws IOException{
-        this(null);
+        this(null, false);
+    }
+
+    public NoDriver(String socks5Proxy) throws IOException{
+        this(socks5Proxy, false);
     }
 
     // find web socket url to control new tab of chrome
@@ -167,7 +174,7 @@ public class NoDriver{
 
     public void executeJS(String js){
         String json = cmdProcessor.genExecuteJs(js);
-        socketClient.sendCommand(json);
+        socketClient.sendAndWaitResult(2, json, 50);
     }
 
     public Optional<String> executeJSAndGetResult(String js){
