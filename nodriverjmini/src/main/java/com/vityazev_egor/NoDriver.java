@@ -91,6 +91,7 @@ public class NoDriver{
         navigation = new Navigation(this);
         misc = new Misc(this);
 
+        Shared.sleep(2000);
         findNewTab();
     }
 
@@ -113,19 +114,16 @@ public class NoDriver{
         
         try {
             Response response = client.newCall(request).execute();
-            if (response.isSuccessful()){
-                String rawJson = response.body().string();
-                List<DevToolsInfo> tabsInfo = Arrays.asList(objectMapper.readValue(rawJson, DevToolsInfo[].class));
-                DevToolsInfo newTab = tabsInfo.stream().filter(t->t.getUrl().equals("chrome://newtab/")).findFirst().orElse(null);
-                if (newTab != null){
-                    logger.info("Found new tab");
-                    logger.info(newTab.getWebSocketDebuggerUrl());
-                    this.socketClient = new WebSocketClient(newTab.getWebSocketDebuggerUrl());
-                }
-                else{
-                    throw new IOException("Can't find new tab");
-                }
+            if (!response.isSuccessful()){
+                throw new IOException("Can't get answer from chrome local server");
             }
+            String rawJson = response.body().string();
+            List<DevToolsInfo> tabsInfo = Arrays.asList(objectMapper.readValue(rawJson, DevToolsInfo[].class));
+            tabsInfo.forEach(System.out::println);
+            DevToolsInfo newTab = tabsInfo.stream().filter(t->t.getUrl().equals("chrome://newtab/")).findFirst().orElseThrow(() -> new IOException("Can't find new tab!"));
+            logger.info("Found new tab");
+            logger.info(newTab.getWebSocketDebuggerUrl());
+            this.socketClient = new WebSocketClient(newTab.getWebSocketDebuggerUrl());
 
         } catch (IOException e) {
             e.printStackTrace();

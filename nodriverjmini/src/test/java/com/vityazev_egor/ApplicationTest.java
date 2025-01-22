@@ -2,6 +2,7 @@ package com.vityazev_egor;
 
 import org.junit.jupiter.api.Test;
 
+import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
 
@@ -112,6 +113,19 @@ class ApplicationTest {
         var input = d.findElement(By.id("text"));
         d.getInput().insertText(input, "Test");
         Thread.sleep(5000);
+        d.exit();
+    }
+
+    @Test
+    void testMultiBrowsers() throws IOException{
+        NoDriver d = new NoDriver();
+        
+        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
+        NoDriver d2 = new NoDriver();
+        d2.getNavigation().loadUrlAndWait("https://bing.com", 10);
+        var input = d.findElement(By.id("text"));
+        d.getInput().insertText(input, "Test");
+        Shared.sleep(5000);
         d.exit();
     }
 
