@@ -119,12 +119,14 @@ class ApplicationTest {
     @Test
     void testMultiBrowsers() throws IOException{
         NoDriver d = new NoDriver();
-        
+        d.getXdo().calibrate();
         d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         NoDriver d2 = new NoDriver();
         d2.getNavigation().loadUrlAndWait("https://bing.com", 10);
         var input = d.findElement(By.id("text"));
         d.getInput().insertText(input, "Test");
+        Shared.sleep(5000);
+        d.getXdo().click(input.getPosition().get().getX(), input.getPosition().get().getY());
         Shared.sleep(5000);
         d.exit();
     }

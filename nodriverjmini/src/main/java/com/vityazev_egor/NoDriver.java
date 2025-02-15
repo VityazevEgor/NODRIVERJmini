@@ -75,6 +75,11 @@ public class NoDriver{
         if (enableHeadless){
             browser.command().add("--headless");
         }
+
+        if (System.getProperty("user.name").contains("root")){
+            browser.command().add("--no-sandbox");
+        }
+        
         browser.redirectErrorStream(true);
         chrome = browser.start();
         consoleListener = new Thread(new ConsoleListener(chrome));
