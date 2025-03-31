@@ -71,96 +71,9 @@ public class Application {
 
         return true;
     }
- 
-
-    public static void testMultiElements() throws IOException{
-        NoDriver driver = new NoDriver();
-        driver.getXdo().calibrate();
-        driver.getNavigation().loadUrlAndWait("file:///home/egor/Desktop/test.html", 2);
-        System.out.println(driver.getHtml());
-        var elements = driver.findElements(By.cssSelector("[data-type=\"searchable\"]"));
-        if (elements.size()>0){
-            elements.get(elements.size()-1).getPosition().map(pos ->{
-                driver.getXdo().click(pos.getX(), pos.getY());
-                return true;
-            });
-        }
-        waitEnter();
-        driver.exit();
-    }
-
-    public static void testProxy() throws IOException, InterruptedException{
-        NoDriver driver = new NoDriver("127.0.0.1:2080");
-        driver.getNavigation().loadUrlAndWait("https://2ip.ru", 10);
-        waitEnter();
-        driver.exit();
-    }
-
-    public static void testWebElemts() throws IOException, InterruptedException{
-        NoDriver driver = new NoDriver();
-        driver.getNavigation().loadUrlAndWait("https://bing.com", 10);
-        var element = driver.findElement(By.id("sb_form_q"));
-        if(element.isClickable()){
-            var elementPosition = element.getPosition();
-            if (elementPosition.isPresent()){
-                System.out.println(elementPosition.get().getX());
-                System.out.println(elementPosition.get().getY());
-            }
-            driver.getInput().emulateClick(element);
-            driver.getInput().enterText(element, "Как какать?");
-            driver.getInput().emulateClick(driver.findElement(By.id("search_icon")));
-        }
-        waitEnter();
-        driver.exit();
-    }
 
     public static void waitEnter(){
-        System.out.println("Waiting for input");
         var sc = new Scanner(System.in);
         sc.nextLine();
-        sc.close();
-    }
-
-    public static void testSreenShot() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
-        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
-        var image = d.getMisc().captureScreenshot();
-        //Thread.sleep(2000);
-        ImageIO.write(image.get(), "png", Path.of("test.png").toFile());
-        d.exit();
-    }
-
-    public static void testMouseMove() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
-        d.getNavigation().loadUrlAndWait("file:///home/egor/Desktop/mouse.html",10);
-        d.getInput().emualteMouseMove(10, 10);
-        Thread.sleep(5000);
-        d.exit();
-    }
-    @SuppressWarnings("unused")
-    private static void testCalibrateXDO() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
-        d.getXdo().calibrate();
-        waitEnter();
-        d.exit();
-    }
-
-    @SuppressWarnings("unused")
-    private static void testCloudFlareBypass() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver();
-        d.getMisc().clearCookies();
-        d.getXdo().calibrate();
-        var result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
-        if (result){
-            System.out.println("Bypassed CloudFlare");
-        }
-        else{
-            System.err.println("Can't bypass CloudFlare");
-            d.getMisc().captureScreenshot(Path.of("cf.png"));
-        }
-        Scanner sc = new Scanner(System.in);
-        sc.nextLine();
-        d.exit();
-        sc.close();
     }
 }

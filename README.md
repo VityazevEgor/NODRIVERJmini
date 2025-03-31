@@ -37,6 +37,26 @@ The NODRIVERJmini is now ready to use in your project!
 ```Java
 NoDriver driver = new NoDriver();
 ```
+## CloudFlare bypass
+![CF bypass](/images/cfBypassXDO.gif "CF bypass")
+
+Here's everything you need to write in order to bypass CloudFlare by using XDO:
+```java
+NoDriver d = new NoDriver("127.0.0.1:2080");
+        d.getXdo().calibrate();
+        Boolean result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
+        d.exit();
+        assertTrue(result);
+```
+
+You can also bypass CloudFlare without emulating real mouse input, but it works **only if you have clear ip**:
+```java
+NoDriver d = new NoDriver();
+        Boolean result = d.getNavigation().loadUrlAndBypassCFCDP("https://nopecha.com/demo/cloudflare", 10, 30);
+        d.exit();
+        assertTrue(result);
+```
+
 
 ## Example code
 Here is example of program that go to the copilot site, opens login page, enter email address and press "next"

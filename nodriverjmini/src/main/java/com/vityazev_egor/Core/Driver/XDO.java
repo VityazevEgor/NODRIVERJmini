@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import com.vityazev_egor.NoDriver;
@@ -24,6 +25,11 @@ public class XDO {
         this.logger = new CustomLogger(XDO.class.getName());
     }
 
+    /**
+     * Calibrates the browser window position relative to the system cursor by using a test HTML file.
+     *
+     * @return {@code true} if calibration is successful, otherwise {@code false}.
+     */
     public Boolean calibrate(){
         InputStream resInputStream = getClass().getClassLoader().getResourceAsStream("calibrateTest.html");
         Path pathToTestHtml = Paths.get(System.getProperty("user.home"), "calibrateTest.html");
@@ -36,7 +42,7 @@ public class XDO {
             }
         }
 
-        driver.getNavigation().loadUrlAndWait("file:///"+pathToTestHtml.toString(), 5);
+        driver.getNavigation().loadUrlAndWait("file:///"+ pathToTestHtml, 5);
         click(100, 100);
         var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent();
         var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent();
@@ -55,6 +61,13 @@ public class XDO {
         return true;
     }
 
+    /**
+     * Simulates a mouse click at the specified coordinates on the screen, adjusting for browser interface offsets.
+     *
+     * @param x The X coordinate relative to the browser viewport.
+     * @param y The Y coordinate relative to the browser viewport.
+     * @throws NoSuchElementException
+     */
     public void click(Integer x, Integer y) {
         // Получаем позицию окна на экране
         Point windowPosition = getWindowPosition().get(); // Позиция окна на экране (начало отчёта координат)
@@ -92,11 +105,22 @@ public class XDO {
         //socketClient.sendCommand(cmdProcessor.genLayoutMetrics());
     }
 
+    /**
+     * Overloaded method to allow clicking with {@code double} coordinates.
+     *
+     * @param x The X coordinate relative to the browser viewport.
+     * @param y The Y coordinate relative to the browser viewport.
+     */
     public void click(Double x, Double y){
         click(x.intValue(), y.intValue());
     }
 
-    public Optional<Point> getWindowPosition() {
+    /**
+     * Retrieves the position of the browser window on the screen.
+     *
+     * @return An {@code Optional<Point>} containing the window's top-left position, or empty if not found.
+     */
+    private Optional<Point> getWindowPosition() {
         String currentTitle = driver.getTitle().get();
         // Команда для поиска окон по процессу Chrome
         String searchCmd = "xdotool search --pid " + driver.getChrome().pid();

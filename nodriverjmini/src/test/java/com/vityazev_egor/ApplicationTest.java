@@ -41,6 +41,16 @@ class ApplicationTest {
     }
 
     @Test
+    void testAntiBot2() throws IOException, InterruptedException{
+        NoDriver d = new NoDriver("127.0.0.1:2080");
+        Boolean result = d.getNavigation().loadUrlAndWait("https://www.browserscan.net/bot-detection", 10);
+        Thread.sleep(2000);
+        d.getMisc().captureScreenshot(Paths.get("antibot.png"));
+        d.exit();
+        assertTrue(result);
+    }
+
+    @Test
     void testHtmlRendering()throws IOException{
         NoDriver d = new NoDriver();
         var result = d.getMisc().htmlToImage(Optional.of("<h1>Kek!</h1>"));
@@ -117,18 +127,20 @@ class ApplicationTest {
     }
 
     @Test
-    void testMultiBrowsers() throws IOException{
-        NoDriver d = new NoDriver();
-        d.getXdo().calibrate();
-        d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
-        NoDriver d2 = new NoDriver();
-        d2.getNavigation().loadUrlAndWait("https://bing.com", 10);
-        var input = d.findElement(By.id("text"));
-        d.getInput().insertText(input, "Test");
-        Shared.sleep(5000);
-        d.getXdo().click(input.getPosition().get().getX(), input.getPosition().get().getY());
-        Shared.sleep(5000);
-        d.exit();
+    void testMultiTabs() throws IOException{
+        NoDriver firstTab = new NoDriver();
+        firstTab.getXdo().calibrate();
+        firstTab.getNavigation().loadUrlAndWait("https://ya.ru", 10);
+        System.out.println("Loaded yandex");
+
+        NoDriver secondTab = new NoDriver();
+        secondTab.getNavigation().loadUrlAndWait("https://bing.com", 10);
+        System.out.println("Loaded bing");
+
+        firstTab.exit();
+        System.out.println("Closed first tab");
+        secondTab.exit();
+        System.out.println("Closed second tab");
     }
 
     @Test

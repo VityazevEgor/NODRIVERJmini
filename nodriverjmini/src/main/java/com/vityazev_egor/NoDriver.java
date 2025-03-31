@@ -34,6 +34,7 @@ public class NoDriver{
     private final CustomLogger logger = new CustomLogger(NoDriver.class.getName());
     @Getter
     private WebSocketClient socketClient;
+    private String tabId;
     @Getter
     private CommandsProcessor cmdProcessor = new CommandsProcessor();
 
@@ -128,8 +129,8 @@ public class NoDriver{
             DevToolsInfo newTab = tabsInfo.stream().filter(t->t.getUrl().equals("chrome://newtab/")).findFirst().orElseThrow(() -> new IOException("Can't find new tab!"));
             logger.info("Found new tab");
             logger.info(newTab.getWebSocketDebuggerUrl());
+            this.tabId = newTab.getId();
             this.socketClient = new WebSocketClient(newTab.getWebSocketDebuggerUrl());
-
         } catch (IOException e) {
             e.printStackTrace();
             exit();
@@ -175,11 +176,24 @@ public class NoDriver{
         socketClient.sendCommand(jsons[1]);
     }
 
+    /**
+     * Executes the given JavaScript code in the tab.
+     *
+     * @param js JavaScript code to execute.
+     */
     public void executeJS(String js){
         String json = cmdProcessor.genExecuteJs(js);
         socketClient.sendAndWaitResult(2, json, 50);
     }
 
+    /**
+     * Executes the given JavaScript code in the tab and returns the result.
+     * Make sure that your JavaScript code returns only one string!
+     *
+     * @param js JavaScript code to execute.
+     * @return An {@code Optional<String>} containing the result of the JavaScript execution,
+     *         or {@code Optional.empty()} if no result is available.
+     */
     public Optional<String> executeJSAndGetResult(String js){
         String json = cmdProcessor.genExecuteJs(js);
         //System.out.println(json);
@@ -187,10 +201,24 @@ public class NoDriver{
         return response.map(r -> cmdProcessor.getJsResult(r)).orElse(Optional.empty());
     }
 
+    /**
+     * Returns single web element in the browser using the specified selector.
+     * After that you should make sure that element exists by calling .isExist method
+     *
+     * @param by The selector used to locate the element.
+     * @return A {@code WebElement} representing the found element.
+     */
     public WebElement findElement(By by){
         return new WebElement(this, by);
     }
 
+    /**
+     * Finds all matching web elements in the tab using the specified selector.
+     *
+     * @param by The selector used to locate the elements.
+     * @return A list of {@code WebElement} objects representing the found elements.
+     *         Returns an empty list if no elements are found or if an error occurs.
+     */
     public List<WebElement> findElements(By by) {
         var elements = new ArrayList<WebElement>();
         
@@ -216,12 +244,19 @@ public class NoDriver{
     }    
     
     public void exit(){
-        logger.warning("Closing chrome");
-        socketClient.sendCommand(cmdProcessor.genCloseBrowser());
         socketClient.closeSession();
-        try {
-            chrome.waitFor();
-        } catch (Exception e) {}
+        if (tabId != null) {
+            logger.warning("Closing tab with id = " + tabId);
+            OkHttpClient client = new OkHttpClient().newBuilder().build();
+            Request request = new Request.Builder()
+                    .url("http://localhost:9222/json/close/" + this.tabId)
+                    .get()
+                    .build();
+            try {
+                var response = client.newCall(request).execute();
+                logger.warning(response.body().string());
+            } catch (Exception ex){}
+        }
         isInit = false;
     }
 }

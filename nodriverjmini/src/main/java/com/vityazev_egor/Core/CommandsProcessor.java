@@ -31,7 +31,7 @@ public class CommandsProcessor {
         try {
             json = objectMapper.writeValueAsString(node);
         } catch (JsonProcessingException e) {
-            // it must always fork so i going to ignore errors
+            // it must always work, so I'm going to ignore errors
             e.printStackTrace();
         }
 

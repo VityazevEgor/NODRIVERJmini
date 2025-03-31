@@ -13,7 +13,13 @@ public class Input {
         this.logger = new CustomLogger(Input.class.getName());
     }
 
-    public void emualteMouseMove(Integer x, Integer y){
+    /**
+     * Emulates mouse movement to the specified coordinates.
+     *
+     * @param x The X coordinate to move the mouse to.
+     * @param y The Y coordinate to move the mouse to.
+     */
+    public void emulateMouseMove(Integer x, Integer y){
         driver.getSocketClient().sendCommand(driver.getCmdProcessor().genMouseMove(x, y));
     }
 
@@ -27,16 +33,37 @@ public class Input {
     }
     // NOT WORKING | TESTING
 
+    /**
+     * Emulates a mouse click at the specified coordinates.
+     *
+     * @param x The X coordinate where the click should occur.
+     * @param y The Y coordinate where the click should occur.
+     */
     public void emulateClick(Integer x, Integer y){
         String[] json = driver.getCmdProcessor().genMouseClick(x, y);
         driver.getSocketClient().sendCommand(json[0]);
         driver.getSocketClient().sendCommand(json[1]);
     }
 
+    /**
+     * Emulates a mouse click at the specified coordinates.
+     * Converts double values to integer before execution.
+     *
+     * @param x The X coordinate as a double.
+     * @param y The Y coordinate as a double.
+     */
     public void emulateClick(Double x, Double y){
         emulateClick(x.intValue(), y.intValue());
     }
 
+    /**
+     * Emulates a mouse click on the specified web element.
+     * <p>
+     * If the element's position is available, the click is performed at its coordinates.
+     * Otherwise, an error is logged.
+     *
+     * @param element The WebElement to click.
+     */
     public void emulateClick(WebElement element){
         element.getPosition().ifPresentOrElse(
             position -> emulateClick(position.getX(), position.getY()), 
@@ -44,6 +71,13 @@ public class Input {
         );
     }
 
+    /**
+     * Enters text into the specified web element by simulating keypresses.
+     * The element is focused before inputting text.
+     *
+     * @param element The WebElement to input text into.
+     * @param text The text to be entered.
+     */
     public void enterText(WebElement element, String text){
         element.getFocus();
         driver.getCmdProcessor().genTextInput(text).forEach(
@@ -51,6 +85,13 @@ public class Input {
         );
     }
 
+    /**
+     * Inserts text into the specified web element without simulating keypresses.
+     * The element is focused before inserting text.
+     *
+     * @param element The WebElement to insert text into.
+     * @param text The text to be inserted.
+     */
     public void insertText(WebElement element, String text){
         element.getFocus();
         var json = driver.getCmdProcessor().genInsertText(text);
