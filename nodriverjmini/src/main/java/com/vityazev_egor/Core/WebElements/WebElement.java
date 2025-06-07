@@ -201,6 +201,17 @@ public class WebElement {
     }
 
     /**
+     * Retrieves the value of the specified attribute from the element.
+     *
+     * @param attributeName The name of the attribute to retrieve (e.g., "src", "alt", "href").
+     * @return An {@link Optional} containing the attribute value as a string, or an empty {@link Optional} if unavailable.
+     */
+    public Optional<String> getAttribute(String attributeName){
+        String getAttributeJs = elementJs + ".getAttribute('" + attributeName + "')";
+        return driver.executeJSAndGetResult(getAttributeJs);
+    }
+
+    /**
      * Waits for the element to appear within the specified timeout.
      *
      * @param timeOutSeconds The maximum number of seconds to wait.
