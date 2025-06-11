@@ -1,5 +1,6 @@
 package com.vityazev_egor.Core;
 
+@Deprecated
 public abstract class WaitTask {
     public abstract Boolean condition();
 
