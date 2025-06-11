@@ -37,6 +37,7 @@ public class NoDriver{
     private String tabId;
     @Getter
     private CommandsProcessor cmdProcessor = new CommandsProcessor();
+    private final boolean isWindows;
 
     public static Boolean isInit = false;
 
@@ -56,33 +57,14 @@ public class NoDriver{
     private final Misc misc;
 
     public NoDriver(String socks5Proxy, Boolean enableHeadless) throws IOException{
-        // запускаем браузер и перехватываем вывод в консоли
-        ProcessBuilder browser = new ProcessBuilder(
-            "google-chrome", 
-            "--remote-debugging-port=9222", 
-            "--remote-allow-origins=*", 
-            //"--disable-gpu",
-            "--window-size=1280,1060",
-            "--no-first-run",
-            "--no-default-browser-check",
-            "--lang=en",
-            "--accept-language=en-US,en",
-            "--user-data-dir=nodriverData"
-        );
-        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
-            // Добавляем аргумент для прокси без кавычек вокруг URL
-            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
-        }
-        if (enableHeadless){
-            browser.command().add("--headless");
-        }
-
-        if (System.getProperty("user.name").contains("root")){
-            browser.command().add("--no-sandbox");
+        this.isWindows = isWindowsOS();
+        
+        if (isWindows) {
+            chrome = launchChromeWindows(socks5Proxy, enableHeadless);
+        } else {
+            chrome = launchChromeLinux(socks5Proxy, enableHeadless);
         }
         
-        browser.redirectErrorStream(true);
-        chrome = browser.start();
         consoleListener = new Thread(new ConsoleListener(chrome));
         consoleListener.start();
         
@@ -99,6 +81,112 @@ public class NoDriver{
 
         Shared.sleep(2000);
         findNewTab();
+    }
+
+    /**
+     * Determines if the current operating system is Windows.
+     *
+     * @return {@code true} if running on Windows, {@code false} otherwise.
+     */
+    private boolean isWindowsOS() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        return osName.contains("win");
+    }
+
+    /**
+     * Launches Chrome browser on Linux using google-chrome command.
+     *
+     * @param socks5Proxy SOCKS5 proxy configuration (optional)
+     * @param enableHeadless whether to run Chrome in headless mode
+     * @return Process object representing the Chrome browser process
+     * @throws IOException if Chrome cannot be started
+     */
+    private Process launchChromeLinux(String socks5Proxy, Boolean enableHeadless) throws IOException {
+        ProcessBuilder browser = new ProcessBuilder(
+            "google-chrome", 
+            "--remote-debugging-port=9222", 
+            "--remote-allow-origins=*", 
+            "--window-size=1280,1060",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--lang=en",
+            "--accept-language=en-US,en",
+            "--user-data-dir=nodriverData"
+        );
+        
+        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
+            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        }
+        
+        if (enableHeadless) {
+            browser.command().add("--headless");
+        }
+
+        if (System.getProperty("user.name").contains("root")) {
+            browser.command().add("--no-sandbox");
+        }
+        
+        browser.redirectErrorStream(true);
+        return browser.start();
+    }
+
+    /**
+     * Launches Chrome browser on Windows using chrome.exe from common installation paths.
+     *
+     * @param socks5Proxy SOCKS5 proxy configuration (optional)
+     * @param enableHeadless whether to run Chrome in headless mode
+     * @return Process object representing the Chrome browser process
+     * @throws IOException if Chrome cannot be started
+     */
+    private Process launchChromeWindows(String socks5Proxy, Boolean enableHeadless) throws IOException {
+        String chromeExecutable = findChromeExecutableWindows();
+        
+        ProcessBuilder browser = new ProcessBuilder(
+            chromeExecutable,
+            "--remote-debugging-port=9222", 
+            "--remote-allow-origins=*", 
+            "--window-size=1280,1060",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--lang=en",
+            "--accept-language=en-US,en",
+            "--user-data-dir=nodriverData"
+        );
+        
+        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
+            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        }
+        
+        if (enableHeadless) {
+            browser.command().add("--headless");
+        }
+        
+        browser.redirectErrorStream(true);
+        return browser.start();
+    }
+
+    /**
+     * Finds Chrome executable path on Windows by checking common installation directories.
+     *
+     * @return Path to Chrome executable
+     * @throws IOException if Chrome executable cannot be found
+     */
+    private String findChromeExecutableWindows() throws IOException {
+        String[] possiblePaths = {
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            System.getProperty("user.home") + "\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
+        };
+        
+        for (String path : possiblePaths) {
+            java.io.File chromeFile = new java.io.File(path);
+            if (chromeFile.exists()) {
+                logger.info("Found Chrome at: " + path);
+                return path;
+            }
+        }
+        
+        throw new IOException("Chrome executable not found. Please ensure Chrome is installed.");
     }
 
     public NoDriver() throws IOException{

@@ -16,9 +16,11 @@ public class Application {
     }
 
     public static void exampleCopilotAuth() throws IOException{
-        NoDriver driver = new NoDriver("127.0.0.1:2080");
-        driver.getMisc().clearCookies();
-        System.out.println("Auth result = " + copilotAuth(driver));
+        NoDriver driver = new NoDriver();
+        driver.getXdo().calibrate();
+        driver.getNavigation().loadUrlAndWait("https://ya.ru", 10);
+        var input = driver.findElement(By.id("text"));
+        input.getPosition().ifPresent(point -> driver.getXdo().click(point.getX(), point.getY()));
         waitEnter();
         driver.exit();
     }
