@@ -44,13 +44,18 @@ public class XDO {
 
         driver.getNavigation().loadUrlAndWait("file:///"+ pathToTestHtml, 5);
         click(100, 100);
-        var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent();
-        var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent();
-        if (!xDivContent.isPresent() || !yDivContent.isPresent()) return false;
-        logger.warning(String.format("Real x = %s; Real y = %s", xDivContent.get(), yDivContent.get()));
+        try {
+            var xDivContent = driver.findElement(By.id("xdata")).getHTMLContent().orElseThrow(() -> new RuntimeException("Could not get X coordinate data"));
+            var yDivContent = driver.findElement(By.id("ydata")).getHTMLContent().orElseThrow(() -> new RuntimeException("Could not get Y coordinate data"));
+            
+            logger.warning(String.format("Real x = %s; Real y = %s", xDivContent, yDivContent));
 
-        driver.setCalibrateX(Integer.parseInt(xDivContent.get()) - 100);
-        driver.setCalibrateY(Integer.parseInt(yDivContent.get()) - 100);
+            driver.setCalibrateX(Integer.parseInt(xDivContent) - 100);
+            driver.setCalibrateY(Integer.parseInt(yDivContent) - 100);
+        } catch (RuntimeException e) {
+            logger.error("Error during calibration: " + e.getMessage());
+            return false;
+        }
         logger.warning(String.format("Diff x = %s; Diff y = %s", driver.getCalibrateX().toString(), driver.getCalibrateY().toString()));
 
         try {
@@ -66,43 +71,33 @@ public class XDO {
      *
      * @param x The X coordinate relative to the browser viewport.
      * @param y The Y coordinate relative to the browser viewport.
-     * @throws NoSuchElementException
      */
     public void click(Integer x, Integer y) {
-        // Получаем позицию окна на экране
-        Point windowPosition = getWindowPosition().get(); // Позиция окна на экране (начало отчёта координат)
+        try {
+            Point windowPosition = getWindowPosition().orElseThrow(() -> new RuntimeException("Could not get browser window position"));
+            Dimension viewPortSize = driver.getViewPortSize().orElseThrow(() -> new RuntimeException("Could not get viewport size"));
+            
+            Dimension browserWindowSize = new Dimension(1280, 1060);
         
-        // Получаем размер видимой части браузера (viewport)
-        Dimension viewPortSize = driver.getViewPortSize().get(); // Размер viewport (например, 1236x877)
+            double interfaceHeight = browserWindowSize.getHeight() - viewPortSize.getHeight();
+            double interfaceWidth = browserWindowSize.getWidth() - viewPortSize.getWidth();
+            
+            logger.warning("Interface height = " + interfaceHeight); 
+            logger.warning("Interface width = " + interfaceWidth);
         
-        // Определите размеры окна браузера, которые вы можете использовать для расчета
-        Dimension browserWindowSize = new Dimension(1280, 1060); // Размер окна браузера
-    
-        // Получаем размеры интерфейса браузера
-        // Интерфейс браузера — это то, что находится за пределами видимой части браузера
-        double interfaceHeight = browserWindowSize.getHeight() - viewPortSize.getHeight(); // должно быть +-142
-        double interfaceWidth = browserWindowSize.getWidth() - viewPortSize.getWidth();
+            Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x - driver.getCalibrateX();
+            Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y - driver.getCalibrateY();
         
-        // Проверьте полученные значения для отладки
-        logger.warning("Interface height = " + interfaceHeight); 
-        logger.warning("Interface width = " + interfaceWidth);
-    
-        // Координаты клика на экране:
-        // Позиция окна на экране + отступы из-за интерфейса
-        Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x - driver.getCalibrateX();
-        Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y - driver.getCalibrateY();
-    
-        // Расчет координат клика на экране
-        logger.warning(String.format("Screen click pos %d %d", screenX, screenY));
-    
-        // Формируем команду для клика с помощью xdotool
-        String moveCmd = String.format("xdotool mousemove %d %d", screenX, screenY);
-        String clickCmd = "xdotool click 1";
+            logger.warning(String.format("Screen click pos %d %d", screenX, screenY));
         
-        // Выполняем команды
-        new ConsoleListener(moveCmd).run();
-        new ConsoleListener(clickCmd).run();
-        //socketClient.sendCommand(cmdProcessor.genLayoutMetrics());
+            String moveCmd = String.format("xdotool mousemove %d %d", screenX, screenY);
+            String clickCmd = "xdotool click 1";
+            
+            new ConsoleListener(moveCmd).run();
+            new ConsoleListener(clickCmd).run();
+        } catch (RuntimeException e) {
+            logger.error("Error performing click: " + e.getMessage());
+        }
     }
 
     /**
@@ -117,52 +112,54 @@ public class XDO {
 
     /**
      * Retrieves the position of the browser window on the screen.
+     * <p>
+     * This method searches for browser windows by process ID, matches the window
+     * by title, and extracts the window's position coordinates from xdotool output.
      *
      * @return An {@code Optional<Point>} containing the window's top-left position, or empty if not found.
      */
     private Optional<Point> getWindowPosition() {
-        String currentTitle = driver.getTitle().get();
-        // Команда для поиска окон по процессу Chrome
-        String searchCmd = "xdotool search --pid " + driver.getChrome().pid();
-        
-        // Выполняем команду поиска окон
-        var searchListener = new ConsoleListener(searchCmd);
-        searchListener.run();
-        List<String> windowIds = searchListener.getConsoleMessages();
-        
-        String matchingId = null;
-        for (String windowId : windowIds) {
-            // Команда для получения заголовка окна по ID
-            String getNameCmd = "xdotool getwindowname " + windowId;
-            var nameListener = new ConsoleListener(getNameCmd);
-            nameListener.run();
-            String windowTitle = nameListener.getConsoleMessages().get(0);
+        try {
+            String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
+            String searchCmd = "xdotool search --pid " + driver.getChrome().pid();
             
-            if (windowTitle.contains(currentTitle)) {
-                matchingId = windowId;
-                break; // Найдено подходящее окно, ливаем
+            var searchListener = new ConsoleListener(searchCmd);
+            searchListener.run();
+            List<String> windowIds = searchListener.getConsoleMessages();
+            
+            String matchingId = null;
+            for (String windowId : windowIds) {
+                String getNameCmd = "xdotool getwindowname " + windowId;
+                var nameListener = new ConsoleListener(getNameCmd);
+                nameListener.run();
+                String windowTitle = nameListener.getConsoleMessages().get(0);
+                
+                if (windowTitle.contains(currentTitle)) {
+                    matchingId = windowId;
+                    break;
+                }
             }
-        }
-        
-        if (matchingId == null) {
-            System.out.println("Window with title \"" + currentTitle + "\" not found.");
+            
+            if (matchingId == null) {
+                logger.warning("Window with title \"" + currentTitle + "\" not found.");
+                return Optional.empty();
+            }
+            
+            String getGeometryCmd = "xdotool getwindowgeometry " + matchingId;
+            var geometryListener = new ConsoleListener(getGeometryCmd);
+            geometryListener.run();
+            String geometryOutput = geometryListener.getConsoleMessages().get(1);
+            
+            String position = geometryOutput.replace("  Position: ", "").replace(" (screen: 0)", "");
+            logger.info("Window position: " + position);
+            
+            String[] parts = position.split(",");
+            int x = Integer.parseInt(parts[0]);
+            int y = Integer.parseInt(parts[1]);
+            return Optional.of(new Point(x, y));
+        } catch (Exception e) {
+            logger.error("Error getting window position: " + e.getMessage());
             return Optional.empty();
         }
-        
-        // Команда для получения геометрии окна по ID
-        String getGeometryCmd = "xdotool getwindowgeometry " + matchingId;
-        var geometryListener = new ConsoleListener(getGeometryCmd);
-        geometryListener.run();
-        String geometryOutput = geometryListener.getConsoleMessages().get(1);
-        
-        // Извлекаем позицию окна из вывода команды
-        String position = geometryOutput.replace("  Position: ", "").replace(" (screen: 0)", "");
-        System.out.println(position);
-        
-        // Преобразуем строку позиции в объект Point
-        String[] parts = position.split(",");
-        int x = Integer.parseInt(parts[0]);
-        int y = Integer.parseInt(parts[1]);
-        return Optional.of(new Point(x, y));
     }
 }
