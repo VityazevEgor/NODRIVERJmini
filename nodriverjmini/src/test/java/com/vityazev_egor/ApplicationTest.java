@@ -151,4 +151,15 @@ class ApplicationTest {
         assertTrue(title.isPresent());
         System.out.println(title.get());
     }
+
+    @Test
+    void testGetCurrentUrl() throws IOException{
+        NoDriver d = new NoDriver();
+        d.getNavigation().loadUrlAndWait("https://google.com", 10);
+        var currentUrl = d.getCurrentUrl();
+        d.exit();
+        assertTrue(currentUrl.isPresent());
+        assertTrue(currentUrl.get().contains("google.com"));
+        System.out.println("Current URL: " + currentUrl.get());
+    }
 }

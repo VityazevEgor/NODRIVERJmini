@@ -247,6 +247,10 @@ public class NoDriver{
         return executeJSAndGetResult("document.title");
     }
 
+    public Optional<String> getCurrentUrl(){
+        return executeJSAndGetResult("window.location.href");
+    }
+
     public Optional<Dimension> getViewPortSize() {
         var portWidth = executeJSAndGetResult("window.innerWidth");
         var portHeight = executeJSAndGetResult("window.innerHeight");
