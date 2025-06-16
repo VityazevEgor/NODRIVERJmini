@@ -7,6 +7,13 @@
  * Pass anti-bot [checks](https://bot.sannysoft.com/)
  * Simular to Selenium
  * Can emulate mouse input on system level (xdotool)
+ * Supports Windows and Linux operating systems
+
+ **System Requirements**
+ * For Linux users: Install xdotool for XDO class functionality (system-level mouse emulation)
+   ```bash
+   sudo apt install xdotool
+   ```
 
  > A idea of my library was inspired by [nodriver](https://github.com/ultrafunkamsterdam/nodriver), but it's not a complete java fork of this library.
 
@@ -59,64 +66,60 @@ NoDriver d = new NoDriver();
 
 
 ## Example code
-Here is example of program that go to the copilot site, opens login page, enter email address and press "next"
-
-![Running code from example](/images/copilotLogin.gif "Example code")
+Here is example of basic usage that searches for "NODRIVERJmini" on Google:
 
 ```Java
-public static void exampleCopilotAuth() throws IOException{
-        NoDriver driver = new NoDriver("127.0.0.1:2080");
-        System.out.println("Auth result = " + copilotAuth(driver));
-        waitEnter();
+public void exampleUsage() {
+    try {
+        // Initialize a new NoDriver instance
+        NoDriver driver = new NoDriver();
+
+        // Load the URL "https://google.com" and wait for it to fully load
+        driver.getNavigation().loadUrlAndWait("https://google.com", 10);
+
+        // Find the textarea element with the specified CSS selector
+        WebElement textArea = driver.findElement(By.cssSelector("textarea[maxlength='2048']"));
+
+        // Wait for the textarea to appear on the page
+        textArea.waitToAppear(5, 200);
+
+        // Insert text "NODRIVERJmini" into the textarea
+        driver.getInput().insertText(textArea, "NODRIVERJmini");
+
+        // Pause for 100 milliseconds
+        Shared.sleep(100);
+
+        // Find all suggestion elements with the specified CSS selector
+        List<WebElement> suggestions = driver.findElements(By.cssSelector("li[data-attrid='AutocompletePrediction']"));
+
+        // Check if any suggestions were found
+        if (suggestions.isEmpty())
+            throw new Exception("Can't find suggestions");
+
+        // Print each suggestion's text
+        suggestions.forEach(suggestion -> suggestion.getText().ifPresent(System.out::println));
+
+        // Emulate a click on the first suggestion
+        driver.getInput().emulateClick(suggestions.getFirst());
+
+        // Pause for 50 milliseconds
+        Shared.sleep(50);
+
+        // Wait for the navigation to fully load
+        driver.getNavigation().waitFullLoad(5);
+
+        // Capture a screenshot and save it as "search_results.png"
+        driver.getMisc().captureScreenshot(Path.of("search_results.png"));
+
+        // Exit the NoDriver instance
         driver.exit();
+    } catch (IOException ex){
+        System.err.println("Can't init chrome: " + ex.getMessage());
+        System.exit(1);
+    } catch (Exception e) {
+        System.err.println("Can't find element(s):" + e.getMessage());
+        System.exit(1);
     }
-
-    private static Boolean copilotAuth(NoDriver driver) {
-        driver.getNavigation().loadUrlAndWait("https://copilot.microsoft.com/", 10);
-
-        // Ожидаем и нажимаем на первую кнопку "Sign in"
-        var signInButton = driver.findElement(By.cssSelector("button[title='Sign in']"));
-        var waitForSignInButton = new WaitTask() {
-            @Override
-            public Boolean condition() {
-                return signInButton.isExists();
-            }
-        };
-        if (!waitForSignInButton.execute(5, 400)) {
-            System.out.println("Can't find sign in button");
-            return false;
-        }
-        driver.getInput().emulateClick(signInButton);
-
-        // Проверяем наличие второй кнопки "Sign in" после раскрытия меню
-        var signInButtons = driver.findElements(By.cssSelector("button[title='Sign in']"));
-        if (signInButtons.size() < 2) {
-            System.out.println("There are less than 2 'Sign in' buttons - " + signInButtons.size());
-            return false;
-        }
-        driver.getInput().emulateClick(signInButtons.get(1));
-
-        // Ожидаем появления поля для ввода логина
-        var loginInput = driver.findElement(By.name("loginfmt"));
-        var waitForLoginInput = new WaitTask() {
-            @Override
-            public Boolean condition() {
-                return loginInput.isExists();
-            }
-        };
-        if (!waitForLoginInput.execute(5, 400)) {
-            System.out.println("Can't find login input");
-            return false;
-        }
-
-        // Вводим email и нажимаем кнопку "Далее"
-        driver.getInput().enterText(loginInput, "test@gmail.com");
-        var loginButton = driver.findElement(By.id("idSIButton9"));
-        if (loginButton.isExists()) {
-            driver.getInput().emulateClick(loginButton);
-        }
-
-        return true;
-    }
-
+    System.exit(0);
+}
 ```
