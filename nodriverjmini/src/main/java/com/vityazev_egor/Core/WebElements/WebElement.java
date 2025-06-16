@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Optional;
 
+import com.vityazev_egor.Core.LambdaWaitTask;
 import org.apache.commons.imaging.Imaging;
 
 import java.awt.*;
@@ -82,6 +83,11 @@ public class WebElement {
         }
     }
 
+    /**
+     * Checks whether the element exists in the DOM.
+     *
+     * @return {@code true} if the element exists, {@code false} otherwise.
+     */
     public Boolean isExists(){
         var result = driver.executeJSAndGetResult(isExistsJs);
         return result.map((jsResult) ->{
@@ -93,6 +99,12 @@ public class WebElement {
         }).orElse(false);
     }
 
+    /**
+     * Retrieves the position of the element on the page.
+     * {@link Point} coordinates of center of element
+     *
+     * @return An {@link Optional} containing the {@link Point} if found, or an empty {@link Optional} if not found.
+     */
     public Optional<Point> getPosition(){
         var result = driver.executeJSAndGetResult(getPositionJs);
         if (!result.isPresent()) return Optional.empty();
@@ -113,6 +125,11 @@ public class WebElement {
         }
     }
 
+    /**
+     * Retrieves the size (width and height) of the element.
+     *
+     * @return An {@link Optional} containing the {@link Dimension} if found, or an empty {@link Optional} if not found.
+     */
     public Optional<Dimension> getSize(){
         var result = driver.executeJSAndGetResult(getSizeJs);
 
@@ -132,22 +149,45 @@ public class WebElement {
         }
     }
 
+    /**
+     * Sets focus on the element.
+     */
     public void getFocus(){
         driver.executeJS(elementJs + ".focus()");
     }
 
+    /**
+     * Retrieves the inner HTML content of the element.
+     *
+     * @return An {@link Optional} containing the HTML content as a string, or an empty {@link Optional} if unavailable.
+     */
     public Optional<String> getHTMLContent(){
         return driver.executeJSAndGetResult(getContentJs);
     }
 
+    /**
+     * Retrieves the visible text content of the element.
+     *
+     * @return An {@link Optional} containing the text content as a string, or an empty {@link Optional} if unavailable.
+     */
     public Optional<String> getText(){
         return driver.executeJSAndGetResult(getTextJs);
     }
 
+    /**
+     * Retrieves the value of the element, typically for input fields.
+     *
+     * @return An {@link Optional} containing the value as a string, or an empty {@link Optional} if unavailable.
+     */
     public Optional<String> getValue(){
         return driver.executeJSAndGetResult(getValueJs);
     }
 
+    /**
+     * Checks whether the element is clickable.
+     *
+     * @return {@code true} if the element is clickable, {@code false} otherwise.
+     */
     public Boolean isClickable(){
         var result = driver.executeJSAndGetResult(isClickableJs);
         if (!result.isPresent()) return false;
@@ -160,16 +200,28 @@ public class WebElement {
         }
     }
 
-    public void waitToAppear(Integer timeOutSeconds, Integer delayMilis) throws Exception {
-        WaitTask waitTask = new WaitTask() {
-            @Override
-            public Boolean condition() {
-                return isExists();
-            }
-        };
+    /**
+     * Retrieves the value of the specified attribute from the element.
+     *
+     * @param attributeName The name of the attribute to retrieve (e.g., "src", "alt", "href").
+     * @return An {@link Optional} containing the attribute value as a string, or an empty {@link Optional} if unavailable.
+     */
+    public Optional<String> getAttribute(String attributeName){
+        String getAttributeJs = elementJs + ".getAttribute('" + attributeName + "')";
+        return driver.executeJSAndGetResult(getAttributeJs);
+    }
 
-        if (!waitTask.execute(timeOutSeconds, delayMilis)){
+    /**
+     * Waits for the element to appear within the specified timeout.
+     *
+     * @param timeOutSeconds The maximum number of seconds to wait.
+     * @param delayMilis     The delay in milliseconds between condition checks.
+     * @throws Exception If the element does not appear within the timeout period.
+     */
+    public void waitToAppear(Integer timeOutSeconds, Integer delayMilis) throws Exception {
+        var waitTask = new LambdaWaitTask(() -> isExists());
+
+        if (!waitTask.execute(timeOutSeconds, delayMilis))
             throw new Exception("Element not found: " + elementJs);
-        }
     }
 }

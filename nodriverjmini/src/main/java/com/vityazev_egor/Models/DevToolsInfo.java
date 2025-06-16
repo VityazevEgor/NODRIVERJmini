@@ -1,7 +1,10 @@
 package com.vityazev_egor.Models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.Data;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class DevToolsInfo {
     private String description;

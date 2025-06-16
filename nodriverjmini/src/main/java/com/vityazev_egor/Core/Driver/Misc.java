@@ -26,6 +26,14 @@ public class Misc {
     }
 
 
+    /**
+     * Captures a screenshot of the current tab.
+     * The screenshot is retrieved as a Base64-encoded PNG image, decoded, and converted into a {@link BufferedImage}.
+     * If a valid file path is provided, the image is also saved to the specified location.
+     *
+     * @param screenSavePath The path where the screenshot should be saved. If {@code null}, the image is not saved.
+     * @return An {@link Optional} containing the captured screenshot as a {@link BufferedImage}, or an empty {@link Optional} if capturing fails.
+     */
     public Optional<BufferedImage> captureScreenshot(Path screenSavePath){
         var response = driver.getSocketClient().sendAndWaitResult(2, driver.getCmdProcessor().genCaptureScreenshot());
         if (!response.isPresent()) return Optional.empty();
@@ -43,14 +51,28 @@ public class Misc {
         }
     }
 
+    /**
+     * Captures a screenshot of the current browser window without saving it to a file.
+     *
+     * @return An {@link Optional} containing the captured screenshot as a {@link BufferedImage}, or an empty {@link Optional} if capturing fails.
+     */
     public Optional<BufferedImage> captureScreenshot(){
         return captureScreenshot(null);
     }
 
+    /**
+     * Clears all cookies stored in the browser session.
+     */
     public void clearCookies(){
         driver.getSocketClient().sendCommand(driver.getCmdProcessor().genClearCookies());
     }
-    
+
+    /**
+     * Enables or disables Content Security Policy (CSP) bypass.
+     * When enabled, this allows loading external scripts and modifying restricted content.
+     *
+     * @param enabled {@code true} to enable CSP bypass, {@code false} to disable it.
+     */
     public void setBypassCDP(Boolean enabled){
         driver.getSocketClient().sendCommand(driver.getCmdProcessor().genBypassCSP(enabled));
     }
