@@ -1,6 +1,8 @@
 # NODRIVERJmini
  A library for controlling the browser directly via web sockets without using web drivers, which give you ability to be undectable for anti-bot systems.
 
+📖 **[API Documentation](API_Documentation.md)** - Complete API reference with examples
+
  **Features**
  * Do not need a web-driver
  * Works with any version of chrome browser
