@@ -50,7 +50,7 @@ public class WebElement {
         this.isClickableJs = Shared.readResource("elementsJS/isElementClickable.js").get().replace("REPLACE_ME", elementJs);
         this.isExistsJs = Shared.readResource("elementsJS/isElementExists.js").get().replace("REPLACE_ME", elementJs);
         this.getContentJs = elementJs + ".innerHTML";
-        this.getTextJs = elementJs + ".textContent";
+        this.getTextJs = elementJs + ".innerText";
         this.getValueJs = elementJs + ".value";
 
         // TESTING
