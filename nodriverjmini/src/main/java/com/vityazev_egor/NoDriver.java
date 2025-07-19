@@ -2,11 +2,16 @@ package com.vityazev_egor;
 
 import java.awt.Dimension;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
 
+import com.evanlennick.retry4j.CallExecutorBuilder;
+import com.evanlennick.retry4j.config.RetryConfig;
+import com.evanlennick.retry4j.config.RetryConfigBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CommandsProcessor;
 import com.vityazev_egor.Core.ConsoleListener;
@@ -205,38 +210,55 @@ public class NoDriver{
             .get()
             .build();
         ObjectMapper objectMapper = new ObjectMapper();
-        
-        try {
-            Response response = client.newCall(request).execute();
-            if (!response.isSuccessful()){
-                throw new IOException("Can't get answer from chrome local server");
+
+        RetryConfig retryConfig = new RetryConfigBuilder()
+            .retryOnAnyException()
+            .withMaxNumberOfTries(30)
+            .withDelayBetweenTries(Duration.ofSeconds(2))
+            .withFixedBackoff()
+            .build();
+
+        Callable<Boolean> connectToChrome = () -> {
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Can't get answer from chrome local server, HTTP status: " + response.code());
+                }
+                if (response.body() == null) return false;
+                String rawJson = response.body().string();
+                List<DevToolsInfo> tabsInfo = Arrays.asList(objectMapper.readValue(rawJson, DevToolsInfo[].class));
+                tabsInfo.forEach(System.out::println);
+                DevToolsInfo newTab = tabsInfo.stream()
+                    .filter(t -> t.getUrl().equals("chrome://newtab/"))
+                    .findFirst()
+                    .orElseThrow(() -> new IOException("Can't find new tab!"));
+                
+                logger.info("Found new tab");
+                logger.info(newTab.getWebSocketDebuggerUrl());
+                this.tabId = newTab.getId();
+                this.socketClient = new WebSocketClient(newTab.getWebSocketDebuggerUrl());
+                return true;
             }
-            String rawJson = response.body().string();
-            List<DevToolsInfo> tabsInfo = Arrays.asList(objectMapper.readValue(rawJson, DevToolsInfo[].class));
-            tabsInfo.forEach(System.out::println);
-            DevToolsInfo newTab = tabsInfo.stream().filter(t->t.getUrl().equals("chrome://newtab/")).findFirst().orElseThrow(() -> new IOException("Can't find new tab!"));
-            logger.info("Found new tab");
-            logger.info(newTab.getWebSocketDebuggerUrl());
-            this.tabId = newTab.getId();
-            this.socketClient = new WebSocketClient(newTab.getWebSocketDebuggerUrl());
-        } catch (IOException e) {
-            e.printStackTrace();
-            exit();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-            exit();
+        };
+
+        try {
+            var executor = new CallExecutorBuilder<Boolean>()
+                .config(retryConfig)
+                .afterFailedTryListener(status -> 
+                    logger.warning("Connection attempt " + status.getTotalTries() + 
+                        " failed: " + status.getLastExceptionThatCausedRetry().getMessage())
+                )
+                .build();
+                
+            executor.execute(connectToChrome);
+        } catch (Exception e) {
+            logger.error("Failed to connect to Chrome DevTools after 30 attempts: " + e.getMessage());
+            throw new RuntimeException("Unable to establish connection with Chrome DevTools after 60 seconds. Browser may not be ready.", e);
         }
     }
 
     public Optional<Double> getCurrentPageTime(){
         var sDouble = executeJSAndGetResult("performance.now()");
-        if (sDouble.isPresent()){
-            return Optional.of(Double.parseDouble(sDouble.get()));
-        }
-        else{
-            return Optional.empty();
-        }
+        return sDouble.map(Double::parseDouble);
     }
 
     public Optional<String> getHtml(){
@@ -290,7 +312,7 @@ public class NoDriver{
         String json = cmdProcessor.genExecuteJs(js);
         //System.out.println(json);
         var response = socketClient.sendAndWaitResult(2, json);
-        return response.map(r -> cmdProcessor.getJsResult(r)).orElse(Optional.empty());
+        return response.flatMap(r -> cmdProcessor.getJsResult(r));
     }
 
     /**
@@ -336,7 +358,9 @@ public class NoDriver{
     }    
     
     public void exit(){
-        socketClient.closeSession();
+        if (socketClient != null) {
+            socketClient.closeSession();
+        }
         if (tabId != null) {
             logger.warning("Closing tab with id = " + tabId);
             OkHttpClient client = new OkHttpClient().newBuilder().build();
@@ -344,10 +368,13 @@ public class NoDriver{
                     .url("http://localhost:9222/json/close/" + this.tabId)
                     .get()
                     .build();
-            try {
-                var response = client.newCall(request).execute();
-                logger.warning(response.body().string());
-            } catch (Exception ex){}
+            try (Response response = client.newCall(request).execute()) {
+                if (response.body() != null) {
+                    logger.warning(response.body().string());
+                }
+            } catch (Exception ex){
+                logger.warning("Failed to close Chrome tab: " + ex.getMessage());
+            }
         }
         isInit = false;
     }

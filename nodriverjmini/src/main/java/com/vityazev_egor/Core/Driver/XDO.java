@@ -240,8 +240,8 @@ public class XDO {
             logger.warning("Interface height = " + interfaceHeight); 
             logger.warning("Interface width = " + interfaceWidth);
         
-            Integer screenX = (int) windowPosition.getX() + (int) interfaceWidth + x - driver.getCalibrateX();
-            Integer screenY = (int) windowPosition.getY() + (int) interfaceHeight + y - driver.getCalibrateY();
+            int screenX = (int) windowPosition.getX() + (int) interfaceWidth + x - driver.getCalibrateX();
+            int screenY = (int) windowPosition.getY() + (int) interfaceHeight + y - driver.getCalibrateY();
         
             logger.warning(String.format("Screen click pos %d %d", screenX, screenY));
         
