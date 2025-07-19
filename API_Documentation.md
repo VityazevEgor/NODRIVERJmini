@@ -74,14 +74,8 @@ public void exit()
 #### Getter Methods
 
 ```java
-// Access browser process
+// Access browser process (for advanced use cases)
 public Process getChrome()
-
-// Access WebSocket client
-public WebSocketClient getSocketClient()
-
-// Access command processor
-public CommandsProcessor getCmdProcessor()
 
 // Access extended functionality modules
 public XDO getXdo()
@@ -474,6 +468,7 @@ driver.getNavigation().loadUrlAndBypassCFXDO("https://protected-site.com", 10, 3
 
 ---
 
+
 ### WaitTask (Deprecated)
 
 Abstract class for creating custom wait conditions. **Deprecated** - use `LambdaWaitTask` instead.
@@ -517,6 +512,16 @@ boolean textFound = textWait.execute(15, 1000);
 ```
 
 ---
+
+## Recent Improvements
+
+### Version 1.2 Updates
+
+- **Improved Chrome Initialization**: Better error detection and handling during browser startup
+- **Enhanced Thread Safety**: Internal WebSocket communication is now fully thread-safe
+- **Better User Data Management**: Chrome user data directory is now created in the application directory with proper permissions
+- **Performance Optimizations**: Faster message processing and reduced memory usage
+- **Modernized Wait Tasks**: Replaced deprecated `WaitTask` with `LambdaWaitTask` for cleaner code
 
 ## Platform Support
 
