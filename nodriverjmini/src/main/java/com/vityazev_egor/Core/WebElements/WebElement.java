@@ -27,7 +27,6 @@ public class WebElement {
     private String getSizeJs;
     private String isExistsJs;
     private String getValueJs;
-    private String getScreenShot;
 
     private final String elementJs;
     private final NoDriver driver;
@@ -52,35 +51,6 @@ public class WebElement {
         this.getContentJs = elementJs + ".innerHTML";
         this.getTextJs = elementJs + ".innerText";
         this.getValueJs = elementJs + ".value";
-
-        // TESTING
-        this.getScreenShot = Shared.readResource("elementsJS/takeScreenshot.js").get().replace("REPLACE_ME", elementJs);
-        // TESTING
-    }
-
-    // NOT WORKING EVERYWHERE | TESTING
-    public Optional<BufferedImage> testScreenshot(){
-        driver.executeJS(getScreenShot);
-        var base64Div = driver.findElement(By.id("base64image"));
-        WaitTask waitTask = new WaitTask() {
-            @Override
-            public Boolean condition() {
-                return base64Div.isExists() && base64Div.getText().filter(text -> text.length() > 4).isPresent();
-            }
-        };
-
-        if (!waitTask.execute(5, 100)) {
-            System.out.println("Could not get screenshot in time");
-            return Optional.empty();
-        }
-        try{
-            byte[] imageBytes = Base64.getDecoder().decode(base64Div.getText().orElseThrow());
-            Files.write(Paths.get("web.png"), imageBytes);
-            return Optional.of(Imaging.getBufferedImage(imageBytes));
-        }catch (Exception ex){
-            ex.printStackTrace();
-            return Optional.empty();
-        }
     }
 
     /**
@@ -107,7 +77,7 @@ public class WebElement {
      */
     public Optional<Point> getPosition(){
         var result = driver.executeJSAndGetResult(getPositionJs);
-        if (!result.isPresent()) return Optional.empty();
+        if (result.isEmpty()) return Optional.empty();
 
         String jsonResponse = result.get();
         if (jsonResponse.contains("not found")) return Optional.empty();
@@ -219,7 +189,7 @@ public class WebElement {
      * @throws Exception If the element does not appear within the timeout period.
      */
     public void waitToAppear(Integer timeOutSeconds, Integer delayMilis) throws Exception {
-        var waitTask = new LambdaWaitTask(() -> isExists());
+        var waitTask = new LambdaWaitTask(this::isExists);
 
         if (!waitTask.execute(timeOutSeconds, delayMilis))
             throw new Exception("Element not found: " + elementJs);

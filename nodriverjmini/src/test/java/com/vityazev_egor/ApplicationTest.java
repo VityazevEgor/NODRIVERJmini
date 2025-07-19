@@ -54,42 +54,6 @@ class ApplicationTest {
     }
 
     @Test
-    void testHtmlRendering()throws IOException{
-        NoDriver d = new NoDriver();
-        var result = d.getMisc().htmlToImage(Optional.of("<h1>Kek!</h1>"));
-        d.exit();
-        assertTrue(result.isPresent());
-    }
-
-    @Test
-    void testScrollDown() throws IOException, InterruptedException{
-        NoDriver driver = new NoDriver("127.0.0.1:2080");
-        driver.getNavigation().loadUrlAndWait("https://copilot.microsoft.com/", 10);
-        Thread.sleep(5000);
-        driver.getMisc().setBypassCDP(true);
-
-        // Ожидаем и нажимаем на первую кнопку "Sign in"
-        var signInButton = driver.findElement(By.cssSelector("button[title=\"Sign in\"]"));
-        if(signInButton.isExists()){
-            System.out.print("Button exist");
-            signInButton.testScreenshot();
-        }
-
-        var base64Div = driver.findElement(By.id("base64image"));
-        WaitTask waitTask = new WaitTask() {
-            @Override
-            public Boolean condition() {
-                return base64Div.isExists() && base64Div.getText().filter(text -> text.length() > 4).isPresent();
-            }
-        };
-
-        var waitResult = waitTask.execute(5,100);
-        System.out.println(base64Div.getText());
-        driver.exit();
-        assertTrue(waitResult);
-    }
-
-    @Test
     void testViewPort() throws IOException{
         NoDriver d = new NoDriver();
         var dm = d.getViewPortSize();

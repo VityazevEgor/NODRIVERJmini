@@ -15,7 +15,7 @@ import com.evanlennick.retry4j.CallExecutorBuilder;
 import com.evanlennick.retry4j.config.RetryConfig;
 import com.evanlennick.retry4j.config.RetryConfigBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vityazev_egor.Core.CommandsProcessor;
+import com.vityazev_egor.Core.CDPCommandBuilder;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
@@ -44,8 +44,6 @@ public class NoDriver{
     @Getter
     private WebSocketClient socketClient;
     private String tabId;
-    @Getter
-    private CommandsProcessor cmdProcessor = new CommandsProcessor();
     private final boolean isWindows;
     private final CountDownLatch initLatch = new CountDownLatch(1);
 
@@ -294,9 +292,32 @@ public class NoDriver{
     }    
 
     public void emulateKey(){
-        String[] jsons = cmdProcessor.genKeyInput();
-        socketClient.sendCommand(jsons[0]);
-        socketClient.sendCommand(jsons[1]);
+        String keyDown = CDPCommandBuilder.create("Input.dispatchKeyEvent")
+            .addParam("type", "keyDown")
+            .addParam("key", "End")
+            .addParam("code", "End")
+            .addParam("keyCode", 35)
+            .addParam("modifiers", 0)
+            .addParam("autoRepeat", false)
+            .addParam("isKeypad", false)
+            .addParam("isSystemKey", true)
+            .addParam("location", 0)
+            .build();
+
+        String keyUp = CDPCommandBuilder.create("Input.dispatchKeyEvent")
+            .addParam("type", "keyUp")
+            .addParam("key", "End")
+            .addParam("code", "End")
+            .addParam("keyCode", 35)
+            .addParam("modifiers", 0)
+            .addParam("autoRepeat", false)
+            .addParam("isKeypad", false)
+            .addParam("isSystemKey", true)
+            .addParam("location", 0)
+            .build();
+
+        socketClient.sendCommand(keyDown);
+        socketClient.sendCommand(keyUp);
     }
 
     /**
@@ -305,8 +326,10 @@ public class NoDriver{
      * @param js JavaScript code to execute.
      */
     public void executeJS(String js){
-        String json = cmdProcessor.genExecuteJs(js);
-        socketClient.sendAndWaitResult(2, json, 50);
+        String command = CDPCommandBuilder.create("Runtime.evaluate")
+            .addParam("expression", js)
+            .build();
+        socketClient.sendAndWaitResult(2, command, 50);
     }
 
     /**
@@ -318,10 +341,11 @@ public class NoDriver{
      *         or {@code Optional.empty()} if no result is available.
      */
     public Optional<String> executeJSAndGetResult(String js){
-        String json = cmdProcessor.genExecuteJs(js);
-        //System.out.println(json);
-        var response = socketClient.sendAndWaitResult(2, json);
-        return response.flatMap(r -> cmdProcessor.getJsResult(r));
+        String command = CDPCommandBuilder.create("Runtime.evaluate")
+            .addParam("expression", js)
+            .build();
+        var response = socketClient.sendAndWaitResult(2, command);
+        return response.flatMap(r -> CDPCommandBuilder.getJsResult(r));
     }
 
     /**

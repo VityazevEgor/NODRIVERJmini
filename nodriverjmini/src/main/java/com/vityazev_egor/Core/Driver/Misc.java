@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.apache.commons.imaging.Imaging;
 
 import com.vityazev_egor.NoDriver;
+import com.vityazev_egor.Core.CDPCommandBuilder;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WaitTask;
@@ -35,9 +36,13 @@ public class Misc {
      * @return An {@link Optional} containing the captured screenshot as a {@link BufferedImage}, or an empty {@link Optional} if capturing fails.
      */
     public Optional<BufferedImage> captureScreenshot(Path screenSavePath){
-        var response = driver.getSocketClient().sendAndWaitResult(2, driver.getCmdProcessor().genCaptureScreenshot());
+        String command = CDPCommandBuilder.create("Page.captureScreenshot")
+            .addParam("format", "png")
+            .build();
+        
+        var response = driver.getSocketClient().sendAndWaitResult(2, command);
         if (response.isEmpty()) return Optional.empty();
-        var baseData = driver.getCmdProcessor().getScreenshotData(response.get());
+        var baseData = CDPCommandBuilder.getScreenshotData(response.get());
         if (baseData.isEmpty()) return Optional.empty();
         
         byte[] imageBytes = Base64.getDecoder().decode(baseData.get());
@@ -64,7 +69,8 @@ public class Misc {
      * Clears all cookies stored in the browser session.
      */
     public void clearCookies(){
-        driver.getSocketClient().sendCommand(driver.getCmdProcessor().genClearCookies());
+        String command = CDPCommandBuilder.create("Network.clearBrowserCookies").build();
+        driver.getSocketClient().sendCommand(command);
     }
 
     /**
@@ -73,55 +79,10 @@ public class Misc {
      *
      * @param enabled {@code true} to enable CSP bypass, {@code false} to disable it.
      */
-    public void setBypassCDP(Boolean enabled){
-        driver.getSocketClient().sendCommand(driver.getCmdProcessor().genBypassCSP(enabled));
+    public void setBypassCSP(Boolean enabled){
+        String command = CDPCommandBuilder.create("Page.setBypassCSP")
+            .addParam("enabled", enabled)
+            .build();
+        driver.getSocketClient().sendCommand(command);
     }
-
-    public Optional<BufferedImage> htmlToImage(Optional<String> optionalHTML) {
-        if (optionalHTML.isEmpty()) return Optional.empty();
-        String html = optionalHTML.get();
-        try {
-            // Генерация временного HTML файла
-            String htmlFileName = UUID.randomUUID().toString() + ".html";
-            Path htmlFilePath = Paths.get(System.getProperty("user.dir"), htmlFileName).toAbsolutePath();
-            String htmlPageContent = Shared.readResource("fullPageScreen.html")
-                    .orElseThrow(() -> new IllegalStateException("Template not found"))
-                    .replace("PASTEHTMLHERE", html);
-            Files.writeString(htmlFilePath, htmlPageContent);
-    
-            logger.warning("File created: " + htmlFilePath);
-            
-            // Загрузка файла в браузер
-            driver.getNavigation().loadUrlAndWait("file://" + htmlFilePath, 5);
-    
-            // Выполнение скрипта для захвата скриншота
-            Shared.sleep(1000);
-            String captureJS = Shared.readResource("miscJS/capturePage.js")
-                    .orElseThrow(() -> new IllegalStateException("JS script not found"));
-            driver.executeJS(captureJS);
-    
-            // Ожидание, пока base64 строка не будет готова
-            var base64Div = driver.findElement(By.id("base64image"));
-            WaitTask waitTask = new WaitTask() {
-                @Override
-                public Boolean condition() {
-                    return base64Div.isExists() && base64Div.getText().filter(text -> text.length() > 4).isPresent();
-                }
-            };
-    
-            if (!waitTask.execute(2, 100)) {
-                return Optional.empty();
-            }
-    
-            // Декодирование base64 в изображение
-            byte[] imageBytes = Base64.getDecoder().decode(base64Div.getText().orElseThrow());
-            Files.deleteIfExists(htmlFilePath);
-    
-            return Optional.of(Imaging.getBufferedImage(imageBytes));
-        } catch (Exception ex) {
-            logger.error("Failed to capture HTML as image", ex);
-            return Optional.empty();
-        }
-    }
-    
 }

@@ -4,6 +4,7 @@ import java.util.function.BiConsumer;
 
 import com.vityazev_egor.Core.LambdaWaitTask;
 import com.vityazev_egor.NoDriver;
+import com.vityazev_egor.Core.CDPCommandBuilder;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WebElements.By;
@@ -29,8 +30,10 @@ public class Navigation {
      * @param url The URL to be loaded.
      */
     public void loadUrl(String url){
-        String json = driver.getCmdProcessor().genLoadUrl(url);
-        driver.getSocketClient().sendCommand(json);
+        String command = CDPCommandBuilder.create("Page.navigate")
+            .addParam("url", url)
+            .build();
+        driver.getSocketClient().sendCommand(command);
     }
 
     public void goBack(){

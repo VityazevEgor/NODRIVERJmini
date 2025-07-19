@@ -25,7 +25,6 @@ import lombok.Setter;
 public class WebSocketClient {
     private Session session;
     private final CustomLogger logger = new CustomLogger(WebSocketClient.class.getName());
-    private final CommandsProcessor cmdProcessor = new CommandsProcessor();
     private List<AwaitedMessage> awaitedMessages = new ArrayList<>();
 
     @Getter
@@ -51,7 +50,7 @@ public class WebSocketClient {
 
     @OnMessage
     public void onMessage(String message) {
-        cmdProcessor.parseIdFromCommand(message).ifPresentOrElse(
+        CDPCommandBuilder.parseIdFromCommand(message).ifPresentOrElse(
             messageId ->{
                 logger.info("Amount of awaited messages = " + awaitedMessages.size());
                 awaitedMessages.stream()
@@ -96,7 +95,7 @@ public class WebSocketClient {
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json, Integer delayMilis){
         final AwaitedMessage awaitedMessage = new AwaitedMessage();
         try{
-            Integer messageId = cmdProcessor.parseIdFromCommand(json).orElseThrow(() -> new Exception("Can't parse id of command"));
+            Integer messageId = CDPCommandBuilder.parseIdFromCommand(json).orElseThrow(() -> new Exception("Can't parse id of command"));
             logger.info("Sending message with id = " + messageId.toString());
             
             //регестрируем ожидание сообщения с определённым id
