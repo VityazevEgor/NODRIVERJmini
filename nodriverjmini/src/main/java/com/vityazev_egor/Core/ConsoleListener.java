@@ -3,52 +3,55 @@ package com.vityazev_egor.Core;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import com.vityazev_egor.NoDriver;
+import java.util.concurrent.CountDownLatch;
 
 import lombok.Getter;
 
 public class ConsoleListener implements Runnable{
-    private Process process = null;
-    private Boolean logMessages = false;
+    private final Process process;
+    private final boolean debugMode;
+    private final CountDownLatch initLatch;
+    private final CustomLogger logger;
     @Getter
     private List<String> consoleMessages = new ArrayList<>();
 
-    public ConsoleListener(Process p){
-        this.process = p;
-    }
-
-    public ConsoleListener(String consoleCommand){
-        List<String> command = Arrays.asList(consoleCommand.split(" "));
-        ProcessBuilder pBuilder = new ProcessBuilder(command).redirectErrorStream(true);
-        try {
-            process = pBuilder.start();
-            logMessages = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Can't start process in 'ConsoleListener(String)'");
-        }
+    public ConsoleListener(Process process, boolean debugMode, CountDownLatch initLatch){
+        this.process = process;
+        this.debugMode = debugMode;
+        this.initLatch = initLatch;
+        this.logger = new CustomLogger(ConsoleListener.class.getName());
     }
 
     @Override
     public void run() {
         if (process == null) return;
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        try {
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-                if (logMessages) consoleMessages.add(line);
-                if (!NoDriver.isInit) NoDriver.isInit = true;
-            }
-            int exitCode = process.waitFor();
-            System.out.println("Process exited with code: " + exitCode);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            boolean initialized = false;
             
+            while ((line = reader.readLine()) != null) {
+                if (debugMode) {
+                    logger.info("Chrome: " + line);
+                }
+                
+                // Сигнализируем об инициализации при первом сообщении от Chrome
+                if (!initialized) {
+                    initialized = true;
+                    initLatch.countDown();
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            if (debugMode) {
+                logger.info("Chrome process exited with code: " + exitCode);
+            }
+        } catch (Exception e) {
+            logger.error("Error in Chrome process monitoring", e);
+            // Сигнализируем об ошибке инициализации
+            initLatch.countDown();
+        }
     }
 
     public long getPid(){

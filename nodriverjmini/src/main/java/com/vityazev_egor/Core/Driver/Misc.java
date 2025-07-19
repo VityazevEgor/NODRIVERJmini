@@ -36,9 +36,9 @@ public class Misc {
      */
     public Optional<BufferedImage> captureScreenshot(Path screenSavePath){
         var response = driver.getSocketClient().sendAndWaitResult(2, driver.getCmdProcessor().genCaptureScreenshot());
-        if (!response.isPresent()) return Optional.empty();
+        if (response.isEmpty()) return Optional.empty();
         var baseData = driver.getCmdProcessor().getScreenshotData(response.get());
-        if (!baseData.isPresent()) return Optional.empty();
+        if (baseData.isEmpty()) return Optional.empty();
         
         byte[] imageBytes = Base64.getDecoder().decode(baseData.get());
         try {
@@ -78,7 +78,7 @@ public class Misc {
     }
 
     public Optional<BufferedImage> htmlToImage(Optional<String> optionalHTML) {
-        if (!optionalHTML.isPresent()) return Optional.empty();
+        if (optionalHTML.isEmpty()) return Optional.empty();
         String html = optionalHTML.get();
         try {
             // Генерация временного HTML файла

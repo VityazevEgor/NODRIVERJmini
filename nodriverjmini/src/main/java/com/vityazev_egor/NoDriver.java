@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.evanlennick.retry4j.CallExecutorBuilder;
 import com.evanlennick.retry4j.config.RetryConfig;
@@ -33,6 +35,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NoDriver{
+    private static final boolean DEBUG_MODE = false;
+    
     @Getter
     private Process chrome;
     private Thread consoleListener;
@@ -43,8 +47,7 @@ public class NoDriver{
     @Getter
     private CommandsProcessor cmdProcessor = new CommandsProcessor();
     private final boolean isWindows;
-
-    public static Boolean isInit = false;
+    private final CountDownLatch initLatch = new CountDownLatch(1);
 
     // переменные, который используются для корректировки нажатий через xdo
     @Getter
@@ -70,13 +73,19 @@ public class NoDriver{
             chrome = launchChromeLinux(socks5Proxy, enableHeadless);
         }
         
-        consoleListener = new Thread(new ConsoleListener(chrome));
+        consoleListener = new Thread(new ConsoleListener(chrome, DEBUG_MODE, initLatch));
         consoleListener.start();
         
-        while (!isInit) {
-            Shared.sleep(1000);
+        try {
+            if (!initLatch.await(30, TimeUnit.SECONDS)) {
+                throw new IOException("Chrome initialization timeout after 30 seconds");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Chrome initialization was interrupted", e);
         }
-        logger.info("Chrome inti done");
+        
+        logger.info("Chrome initialization done");
 
         // иницилизируем классы для расширения функционала
         xdo = new XDO(this);
@@ -376,6 +385,6 @@ public class NoDriver{
                 logger.warning("Failed to close Chrome tab: " + ex.getMessage());
             }
         }
-        isInit = false;
+        // Cleanup completed
     }
 }

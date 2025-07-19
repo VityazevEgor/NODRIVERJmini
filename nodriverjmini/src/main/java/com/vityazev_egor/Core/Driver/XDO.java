@@ -19,7 +19,7 @@ import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.win32.StdCallLibrary;
 
 import com.vityazev_egor.NoDriver;
-import com.vityazev_egor.Core.ConsoleListener;
+import com.vityazev_egor.Core.CommandRunner;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.WebElements.By;
 
@@ -194,7 +194,7 @@ public class XDO {
             Point windowPosition = getWindowPositionLinux().orElseThrow(() -> new RuntimeException("Could not get browser window position"));
             Dimension viewPortSize = driver.getViewPortSize().orElseThrow(() -> new RuntimeException("Could not get viewport size"));
             
-            Dimension browserWindowSize = new Dimension(1280, 1060);
+            Dimension browserWindowSize = getBrowserWindowSizeLinux().orElseThrow(() -> new RuntimeException("Could not get browser window size"));
         
             double interfaceHeight = browserWindowSize.getHeight() - viewPortSize.getHeight();
             double interfaceWidth = browserWindowSize.getWidth() - viewPortSize.getWidth();
@@ -210,8 +210,8 @@ public class XDO {
             String moveCmd = String.format("xdotool mousemove %d %d", screenX, screenY);
             String clickCmd = "xdotool click 1";
             
-            new ConsoleListener(moveCmd).run();
-            new ConsoleListener(clickCmd).run();
+            CommandRunner.executeCommand(moveCmd);
+            CommandRunner.executeCommand(clickCmd);
             
             return true;
         } catch (RuntimeException e) {
@@ -232,7 +232,7 @@ public class XDO {
             Point windowPosition = getWindowPositionWindows().orElseThrow(() -> new RuntimeException("Could not get browser window position"));
             Dimension viewPortSize = driver.getViewPortSize().orElseThrow(() -> new RuntimeException("Could not get viewport size"));
             
-            Dimension browserWindowSize = new Dimension(1280, 1060);
+            Dimension browserWindowSize = getBrowserWindowSizeWindows().orElseThrow(() -> new RuntimeException("Could not get browser window size"));
         
             double interfaceHeight = browserWindowSize.getHeight() - viewPortSize.getHeight();
             double interfaceWidth = browserWindowSize.getWidth() - viewPortSize.getWidth();
@@ -296,20 +296,19 @@ public class XDO {
             String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
             String searchCmd = "xdotool search --pid " + driver.getChrome().pid();
             
-            var searchListener = new ConsoleListener(searchCmd);
-            searchListener.run();
-            List<String> windowIds = searchListener.getConsoleMessages();
+            List<String> windowIds = CommandRunner.executeCommand(searchCmd);
             
             String matchingId = null;
             for (String windowId : windowIds) {
                 String getNameCmd = "xdotool getwindowname " + windowId;
-                var nameListener = new ConsoleListener(getNameCmd);
-                nameListener.run();
-                String windowTitle = nameListener.getConsoleMessages().get(0);
-                
-                if (windowTitle.contains(currentTitle)) {
-                    matchingId = windowId;
-                    break;
+                List<String> nameOutput = CommandRunner.executeCommand(getNameCmd);
+                if (!nameOutput.isEmpty()) {
+                    String windowTitle = nameOutput.get(0);
+                    
+                    if (windowTitle.contains(currentTitle)) {
+                        matchingId = windowId;
+                        break;
+                    }
                 }
             }
             
@@ -319,11 +318,14 @@ public class XDO {
             }
             
             String getGeometryCmd = "xdotool getwindowgeometry " + matchingId;
-            var geometryListener = new ConsoleListener(getGeometryCmd);
-            geometryListener.run();
-            String geometryOutput = geometryListener.getConsoleMessages().get(1);
+            List<String> geometryOutput = CommandRunner.executeCommand(getGeometryCmd);
+            if (geometryOutput.size() < 2) {
+                logger.warning("Invalid geometry output from xdotool");
+                return Optional.empty();
+            }
+            String geometryLine = geometryOutput.get(1);
             
-            String position = geometryOutput.replace("  Position: ", "").replace(" (screen: 0)", "");
+            String position = geometryLine.replace("  Position: ", "").replace(" (screen: 0)", "");
             logger.info("Window position: " + position);
             
             String[] parts = position.split(",");
@@ -371,6 +373,106 @@ public class XDO {
         } catch (Exception e) {
             logger.error("Error getting window position: " + e.getMessage());
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Retrieves the size of the browser window on Linux using xdotool.
+     *
+     * @return An {@code Optional<Dimension>} containing the window size, or empty if not found.
+     */
+    private Optional<Dimension> getBrowserWindowSizeLinux() {
+        try {
+            String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
+            String searchCmd = "xdotool search --name \"" + currentTitle + "\"";
+            
+            List<String> windowIds = CommandRunner.executeCommand(searchCmd);
+            
+            if (windowIds.isEmpty()) {
+                logger.warning("No window found with title \"" + currentTitle + "\"");
+                return Optional.empty();
+            }
+            
+            // Take the first window ID
+            String firstWindowId = windowIds.get(0);
+            
+            String getGeometryCmd = "xdotool getwindowgeometry " + firstWindowId;
+            List<String> geometryOutput = CommandRunner.executeCommand(getGeometryCmd);
+            
+            if (geometryOutput.size() < 3) {
+                logger.warning("Invalid geometry output from xdotool");
+                return Optional.empty();
+            }
+            
+            // Parse "Geometry: 1495x818" from the third line
+            String geometryLine = geometryOutput.get(2);
+            String geometry = geometryLine.replace("  Geometry: ", "");
+            
+            String[] parts = geometry.split("x");
+            if (parts.length != 2) {
+                logger.warning("Failed to parse geometry: " + geometry);
+                return Optional.empty();
+            }
+            
+            int width = Integer.parseInt(parts[0]);
+            int height = Integer.parseInt(parts[1]);
+            
+            logger.info("Browser window size: " + width + "x" + height);
+            return Optional.of(new Dimension(width, height));
+        } catch (Exception e) {
+            logger.error("Error getting browser window size: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Retrieves the size of the browser window on Windows using Windows API.
+     *
+     * @return An {@code Optional<Dimension>} containing the window size, or empty if not found.
+     */
+    private Optional<Dimension> getBrowserWindowSizeWindows() {
+        try {
+            String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
+            
+            // Find window by title
+            WinDef.HWND hwnd = findWindowByTitle(currentTitle);
+            
+            if (hwnd == null) {
+                logger.warning("Window with title \"" + currentTitle + "\" not found.");
+                return Optional.empty();
+            }
+            
+            // Get window rectangle using standard JNA User32
+            WinDef.RECT rect = new WinDef.RECT();
+            boolean success = com.sun.jna.platform.win32.User32.INSTANCE.GetWindowRect(hwnd, rect);
+            
+            if (!success) {
+                logger.warning("Failed to get window rectangle");
+                return Optional.empty();
+            }
+            
+            int width = rect.right - rect.left;
+            int height = rect.bottom - rect.top;
+            
+            logger.info("Browser window size: " + width + "x" + height);
+            return Optional.of(new Dimension(width, height));
+            
+        } catch (Exception e) {
+            logger.error("Error getting browser window size: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Retrieves the size of the browser window.
+     *
+     * @return An {@code Optional<Dimension>} containing the window size, or empty if not found.
+     */
+    public Optional<Dimension> getBrowserWindowSize() {
+        if (isWindows) {
+            return getBrowserWindowSizeWindows();
+        } else {
+            return getBrowserWindowSizeLinux();
         }
     }
 

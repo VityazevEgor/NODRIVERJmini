@@ -21,7 +21,7 @@ class ApplicationTest {
     void testCFBypassXDO() throws IOException{
         NoDriver d = new NoDriver("127.0.0.1:2080");
         d.getXdo().calibrate();
-        Boolean result = d.getNavigation().loadUrlAndBypassCFXDO("https://dstatlove.ink/hit", 5, 30);
+        Boolean result = d.getNavigation().loadUrlAndBypassCFXDO("https://nopecha.com/demo/cloudflare", 5, 30);
         d.exit();
         assertTrue(result);
     }

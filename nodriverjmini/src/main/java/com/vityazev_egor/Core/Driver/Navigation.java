@@ -6,7 +6,6 @@ import com.vityazev_egor.Core.LambdaWaitTask;
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.Shared;
-import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
 
 public class Navigation {

@@ -99,14 +99,6 @@ public class CommandsProcessor {
     public String[] genMouseClick(int x, int y){
         return genMouseClick(x, y, null);
     }
-    
-    public String genWindowId(){
-        return serializeNode(buildBase("Browser.getWindowForTarget", null));
-    }
-
-    public String genLayoutMetrics(){
-        return serializeNode(buildBase("Page.getLayoutMetrics", null));
-    }
 
     public String genMouseMove(int x, int y){
         ObjectNode paramsPressed = objectMapper.createObjectNode();
@@ -194,10 +186,6 @@ public class CommandsProcessor {
 
     public String genClearCookies(){
         return serializeNode( buildBase("Network.clearBrowserCookies", null));
-    }
-
-    public String genCloseBrowser(){
-        return serializeNode(buildBase("Browser.close", null));
     }
 
     public Optional<String> getScreenshotData(String response){
