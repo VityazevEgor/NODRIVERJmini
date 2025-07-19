@@ -51,36 +51,6 @@ public class Input {
         driver.getSocketClient().sendCommand(command);
     }
 
-    public void emulateEndClick(){
-        String keyDown = CDPCommandBuilder.create("Input.dispatchKeyEvent")
-            .addParam("type", "keyDown")
-            .addParam("key", "End")
-            .addParam("code", "End")
-            .addParam("keyCode", 35)
-            .addParam("modifiers", 0)
-            .addParam("autoRepeat", false)
-            .addParam("isKeypad", false)
-            .addParam("isSystemKey", true)
-            .addParam("location", 0)
-            .build();
-
-        String keyUp = CDPCommandBuilder.create("Input.dispatchKeyEvent")
-            .addParam("type", "keyUp")
-            .addParam("key", "End")
-            .addParam("code", "End")
-            .addParam("keyCode", 35)
-            .addParam("modifiers", 0)
-            .addParam("autoRepeat", false)
-            .addParam("isKeypad", false)
-            .addParam("isSystemKey", true)
-            .addParam("location", 0)
-            .build();
-
-        driver.getSocketClient().sendCommand(keyDown);
-        driver.getSocketClient().sendCommand(keyUp);
-    }
-    // NOT WORKING | TESTING
-
     /**
      * Emulates a mouse click at the specified coordinates.
      *

@@ -51,7 +51,7 @@ public class Navigation {
      * @param timeOutSeconds The maximum time in seconds to wait for the page to load.
      * @return {@code true} if the page loaded successfully within the timeout, otherwise {@code false}.
      */
-    public Boolean loadUrlAndWait(String url, Integer timeOutSeconds){
+    public boolean loadUrlAndWait(String url, Integer timeOutSeconds){
         loadUrl(url);
         Shared.sleep(500); // we need give some time for browser to start loading of page
         return waitFullLoadTask.execute(timeOutSeconds, 500);
@@ -63,7 +63,7 @@ public class Navigation {
      * @param timeOutSeconds The maximum time in seconds to wait for the page to load.
      * @return {@code true} if the page loaded successfully within the timeout, otherwise {@code false}.
      */
-    public Boolean waitFullLoad(Integer timeOutSeconds){
+    public boolean waitFullLoad(Integer timeOutSeconds){
         return waitFullLoadTask.execute(timeOutSeconds, 500);
     }
 
@@ -76,9 +76,9 @@ public class Navigation {
      * @param clickAction             A {@link BiConsumer} responsible for emulating a click on the Cloudflare challenge element.
      * @return {@code true} if the page loaded successfully and Cloudflare was bypassed (if present), otherwise {@code false}.
      */
-    public Boolean loadUrlAndBypassCF(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds, BiConsumer<Integer, Integer> clickAction) {
+    public boolean loadUrlAndBypassCF(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds, BiConsumer<Integer, Integer> clickAction) {
         if (url != null){
-            Boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
+            boolean loadResult = loadUrlAndWait(url, urlLoadTimeOutSeconds);
             if (!loadResult) return false;
         }
 
@@ -123,7 +123,7 @@ public class Navigation {
      * @param cfBypassTimeOutSeconds  The timeout for the Cloudflare bypass process.
      * @return {@code true} if the page loaded successfully and Cloudflare was bypassed (if present), otherwise {@code false}.
      */
-    public Boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
+    public boolean loadUrlAndBypassCFXDO(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
         return loadUrlAndBypassCF(url, urlLoadTimeOutSeconds, cfBypassTimeOutSeconds, driver.getXdo()::click);
     }
 
@@ -136,7 +136,7 @@ public class Navigation {
      * @param cfBypassTimeOutSeconds  The timeout for the Cloudflare bypass process.
      * @return {@code true} if the page loaded successfully and Cloudflare was bypassed (if present), otherwise {@code false}.
      */
-    public Boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
+    public boolean loadUrlAndBypassCFCDP(String url, Integer urlLoadTimeOutSeconds, Integer cfBypassTimeOutSeconds) {
         return loadUrlAndBypassCF(url, urlLoadTimeOutSeconds, cfBypassTimeOutSeconds, driver.getInput()::emulateClick);
     }
 

@@ -15,6 +15,8 @@ public class ConsoleListener implements Runnable{
     private final CustomLogger logger;
     @Getter
     private List<String> consoleMessages = new ArrayList<>();
+    @Getter
+    private volatile boolean initializationSuccessful = false;
 
     public ConsoleListener(Process process, boolean debugMode, CountDownLatch initLatch){
         this.process = process;
@@ -29,7 +31,6 @@ public class ConsoleListener implements Runnable{
         
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
-            boolean initialized = false;
             
             while ((line = reader.readLine()) != null) {
                 if (debugMode) {
@@ -37,8 +38,8 @@ public class ConsoleListener implements Runnable{
                 }
                 
                 // Сигнализируем об инициализации при первом сообщении от Chrome
-                if (!initialized) {
-                    initialized = true;
+                if (!initializationSuccessful) {
+                    initializationSuccessful = true;
                     initLatch.countDown();
                 }
             }

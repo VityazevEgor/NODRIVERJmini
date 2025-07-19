@@ -31,7 +31,7 @@ public class XDO {
     public XDO(NoDriver driver){
         this.driver = driver;
         this.logger = new CustomLogger(XDO.class.getName());
-        this.isWindows = isWindowsOS();
+        this.isWindows = driver.isWindows;
     }
 
     /**
@@ -57,21 +57,11 @@ public class XDO {
     }
 
     /**
-     * Determines if the current operating system is Windows.
-     *
-     * @return {@code true} if running on Windows, {@code false} otherwise.
-     */
-    private boolean isWindowsOS() {
-        String osName = System.getProperty("os.name").toLowerCase();
-        return osName.contains("win");
-    }
-
-    /**
      * Calibrates the browser window position relative to the system cursor by using a test HTML file.
      *
      * @return {@code true} if calibration is successful, otherwise {@code false}.
      */
-    public Boolean calibrate(){
+    public boolean calibrate(){
         if (isWindows) {
             return calibrateWindows();
         } else {
@@ -84,7 +74,7 @@ public class XDO {
      *
      * @return {@code true} if calibration is successful, otherwise {@code false}.
      */
-    private Boolean calibrateLinux(){
+    private boolean calibrateLinux(){
         InputStream resInputStream = getClass().getClassLoader().getResourceAsStream("calibrateTest.html");
         Path pathToTestHtml = Paths.get(System.getProperty("user.home"), "calibrateTest.html");
         if (!Files.exists(pathToTestHtml)){
@@ -128,7 +118,7 @@ public class XDO {
      *
      * @return {@code true} if calibration is successful, otherwise {@code false}.
      */
-    private Boolean calibrateWindows(){
+    private boolean calibrateWindows(){
         InputStream resInputStream = getClass().getClassLoader().getResourceAsStream("calibrateTest.html");
         Path pathToTestHtml = Paths.get(System.getProperty("user.home"), "calibrateTest.html");
         if (!Files.exists(pathToTestHtml)){
@@ -174,7 +164,7 @@ public class XDO {
      * @param y The Y coordinate relative to the browser viewport.
      * @return {@code true} if click is successful, otherwise {@code false}.
      */
-    public Boolean click(Integer x, Integer y) {
+    public boolean click(Integer x, Integer y) {
         if (isWindows) {
             return clickWindows(x, y);
         } else {
@@ -189,7 +179,7 @@ public class XDO {
      * @param y The Y coordinate relative to the browser viewport.
      * @return {@code true} if click is successful, otherwise {@code false}.
      */
-    private Boolean clickLinux(Integer x, Integer y) {
+    private boolean clickLinux(Integer x, Integer y) {
         try {
             Point windowPosition = getWindowPositionLinux().orElseThrow(() -> new RuntimeException("Could not get browser window position"));
             Dimension viewPortSize = driver.getViewPortSize().orElseThrow(() -> new RuntimeException("Could not get viewport size"));
@@ -227,7 +217,7 @@ public class XDO {
      * @param y The Y coordinate relative to the browser viewport.
      * @return {@code true} if click is successful, otherwise {@code false}.
      */
-    private Boolean clickWindows(Integer x, Integer y) {
+    private boolean clickWindows(Integer x, Integer y) {
         try {
             Point windowPosition = getWindowPositionWindows().orElseThrow(() -> new RuntimeException("Could not get browser window position"));
             Dimension viewPortSize = driver.getViewPortSize().orElseThrow(() -> new RuntimeException("Could not get viewport size"));
@@ -269,7 +259,7 @@ public class XDO {
      * @param y The Y coordinate relative to the browser viewport.
      * @return {@code true} if click is successful, otherwise {@code false}.
      */
-    public Boolean click(Double x, Double y){
+    public boolean click(Double x, Double y){
         return click(x.intValue(), y.intValue());
     }
 
@@ -346,16 +336,13 @@ public class XDO {
     private Optional<Point> getWindowPositionWindows() {
         try {
             String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
-            
-            // Find window by title (partial match)
             WinDef.HWND hwnd = findWindowByTitle(currentTitle);
             
             if (hwnd == null) {
                 logger.warning("Window with title \"" + currentTitle + "\" not found.");
                 return Optional.empty();
             }
-            
-            // Get window rectangle using standard JNA User32
+
             WinDef.RECT rect = new WinDef.RECT();
             boolean success = com.sun.jna.platform.win32.User32.INSTANCE.GetWindowRect(hwnd, rect);
             
@@ -392,9 +379,8 @@ public class XDO {
                 logger.warning("No window found with title \"" + currentTitle + "\"");
                 return Optional.empty();
             }
-            
-            // Take the first window ID
-            String firstWindowId = windowIds.get(0);
+
+            String firstWindowId = windowIds.getFirst();
             
             String getGeometryCmd = "xdotool getwindowgeometry " + firstWindowId;
             List<String> geometryOutput = CommandRunner.executeCommand(getGeometryCmd);
@@ -433,16 +419,13 @@ public class XDO {
     private Optional<Dimension> getBrowserWindowSizeWindows() {
         try {
             String currentTitle = driver.getTitle().orElseThrow(() -> new RuntimeException("Could not get browser title"));
-            
-            // Find window by title
             WinDef.HWND hwnd = findWindowByTitle(currentTitle);
             
             if (hwnd == null) {
                 logger.warning("Window with title \"" + currentTitle + "\" not found.");
                 return Optional.empty();
             }
-            
-            // Get window rectangle using standard JNA User32
+
             WinDef.RECT rect = new WinDef.RECT();
             boolean success = com.sun.jna.platform.win32.User32.INSTANCE.GetWindowRect(hwnd, rect);
             
@@ -484,21 +467,17 @@ public class XDO {
      */
     private WinDef.HWND findWindowByTitle(String partialTitle) {
         final WinDef.HWND[] foundWindow = {null};
-        
-        // Enumerate all windows using standard JNA User32
-        WinUser.WNDENUMPROC enumProc = new WinUser.WNDENUMPROC() {
-            @Override
-            public boolean callback(WinDef.HWND hWnd, Pointer data) {
-                char[] windowText = new char[512];
-                com.sun.jna.platform.win32.User32.INSTANCE.GetWindowText(hWnd, windowText, 512);
-                String title = Native.toString(windowText);
-                
-                if (title.contains(partialTitle)) {
-                    foundWindow[0] = hWnd;
-                    return false; // Stop enumeration
-                }
-                return true; // Continue enumeration
+
+        WinUser.WNDENUMPROC enumProc = (hWnd, data) -> {
+            char[] windowText = new char[512];
+            com.sun.jna.platform.win32.User32.INSTANCE.GetWindowText(hWnd, windowText, 512);
+            String title = Native.toString(windowText);
+
+            if (title.contains(partialTitle)) {
+                foundWindow[0] = hWnd;
+                return false; // Stop enumeration
             }
+            return true; // Continue enumeration
         };
         
         com.sun.jna.platform.win32.User32.INSTANCE.EnumWindows(enumProc, null);

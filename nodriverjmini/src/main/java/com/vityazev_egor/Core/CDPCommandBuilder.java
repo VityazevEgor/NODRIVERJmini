@@ -13,6 +13,7 @@ public class CDPCommandBuilder {
     
     private final ObjectNode request;
     private final ObjectNode params;
+    private final CustomLogger logger = new CustomLogger(CDPCommandBuilder.class.getName());
 
     private CDPCommandBuilder(String method) {
         this.request = objectMapper.createObjectNode();
@@ -70,15 +71,14 @@ public class CDPCommandBuilder {
      * Builds and returns the JSON string representation of the command
      */
     public String build() {
-        // Add params to request only if they exist
-        if (params.size() > 0) {
+        if (!params.isEmpty()) {
             request.set("params", params);
         }
         
         try {
             return objectMapper.writeValueAsString(request);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            logger.error("Can't build CPD request", e);
             return null;
         }
     }

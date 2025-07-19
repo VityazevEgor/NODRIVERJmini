@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Optional;
 
+import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.LambdaWaitTask;
 import org.apache.commons.imaging.Imaging;
 
@@ -19,6 +20,7 @@ import com.vityazev_egor.Core.WaitTask;
 
 public class WebElement {
     private final ObjectMapper mapper = new ObjectMapper();
+    private final CustomLogger logger = new CustomLogger(WebElement.class.getName());
 
     private String getPositionJs;
     private String isClickableJs;
@@ -58,7 +60,7 @@ public class WebElement {
      *
      * @return {@code true} if the element exists, {@code false} otherwise.
      */
-    public Boolean isExists(){
+    public boolean isExists(){
         var result = driver.executeJSAndGetResult(isExistsJs);
         return result.map((jsResult) ->{
             try {
@@ -90,7 +92,7 @@ public class WebElement {
             return Optional.of(new Point(Integer.parseInt(xRaw), Integer.parseInt(yRaw)));
         }
         catch (Exception ex){
-            ex.printStackTrace();
+            logger.error("Can't get position of element", ex);
             return Optional.empty();
         }
     }
@@ -114,7 +116,7 @@ public class WebElement {
             return Optional.of(new Dimension(Integer.parseInt(xRaw), Integer.parseInt(yRaw)));
         }
         catch (Exception ex){
-            ex.printStackTrace();
+            logger.error("Can't get size of element", ex);
             return Optional.empty();
         }
     }
@@ -158,14 +160,14 @@ public class WebElement {
      *
      * @return {@code true} if the element is clickable, {@code false} otherwise.
      */
-    public Boolean isClickable(){
+    public boolean isClickable(){
         var result = driver.executeJSAndGetResult(isClickableJs);
-        if (!result.isPresent()) return false;
+        if (result.isEmpty()) return false;
 
         try {
             return Boolean.parseBoolean(result.get());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error("Can't check is element is clickable", ex);
             return false;
         }
     }

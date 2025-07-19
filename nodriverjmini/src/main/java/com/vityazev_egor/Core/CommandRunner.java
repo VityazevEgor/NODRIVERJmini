@@ -19,7 +19,6 @@ public class CommandRunner {
      */
     public static List<String> executeCommand(String command) {
         try {
-            // Use ProcessBuilder with proper command parsing
             ProcessBuilder processBuilder = new ProcessBuilder();
             
             // For Linux/Unix systems, use shell to properly handle quotes

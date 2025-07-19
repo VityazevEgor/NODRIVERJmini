@@ -1,6 +1,7 @@
 package com.vityazev_egor;
 
 import java.awt.Dimension;
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
@@ -18,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.Core.CDPCommandBuilder;
 import com.vityazev_egor.Core.ConsoleListener;
 import com.vityazev_egor.Core.CustomLogger;
-import com.vityazev_egor.Core.Shared;
 import com.vityazev_egor.Core.WebSocketClient;
 import com.vityazev_egor.Core.Driver.Input;
 import com.vityazev_egor.Core.Driver.Misc;
@@ -39,13 +39,11 @@ public class NoDriver{
     
     @Getter
     private Process chrome;
-    private Thread consoleListener;
     private final CustomLogger logger = new CustomLogger(NoDriver.class.getName());
     @Getter
     private WebSocketClient socketClient;
     private String tabId;
-    private final boolean isWindows;
-    private final CountDownLatch initLatch = new CountDownLatch(1);
+    public final boolean isWindows;
 
     // переменные, который используются для корректировки нажатий через xdo
     @Getter
@@ -70,13 +68,20 @@ public class NoDriver{
         } else {
             chrome = launchChromeLinux(socks5Proxy, enableHeadless);
         }
-        
-        consoleListener = new Thread(new ConsoleListener(chrome, DEBUG_MODE, initLatch));
+
+        CountDownLatch initLatch = new CountDownLatch(1);
+        ConsoleListener consoleListenerInstance = new ConsoleListener(chrome, DEBUG_MODE, initLatch);
+        Thread consoleListener = new Thread(consoleListenerInstance);
         consoleListener.start();
         
         try {
             if (!initLatch.await(30, TimeUnit.SECONDS)) {
                 throw new IOException("Chrome initialization timeout after 30 seconds");
+            }
+            
+            // Проверяем, была ли инициализация успешной
+            if (!consoleListenerInstance.isInitializationSuccessful()) {
+                throw new IOException("Chrome process failed to initialize properly");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -84,14 +89,10 @@ public class NoDriver{
         }
         
         logger.info("Chrome initialization done");
-
-        // иницилизируем классы для расширения функционала
         xdo = new XDO(this);
         input = new Input(this);
         navigation = new Navigation(this);
         misc = new Misc(this);
-
-        Shared.sleep(2000);
         findNewTab();
     }
 
@@ -103,6 +104,29 @@ public class NoDriver{
     private boolean isWindowsOS() {
         String osName = System.getProperty("os.name").toLowerCase();
         return osName.contains("win");
+    }
+
+    /**
+     * Gets the absolute path to the Chrome user data directory.
+     * Creates the directory if it doesn't exist.
+     *
+     * @return Absolute path to the nodriverData directory
+     * @throws IOException if the directory cannot be created
+     */
+    private String getUserDataDir() throws IOException {
+        // Get current working directory (where the program is running)
+        String currentDir = System.getProperty("user.dir");
+        File userDataDir = new File(currentDir, "nodriverData");
+        
+        // Create directory if it doesn't exist
+        if (!userDataDir.exists()) {
+            if (!userDataDir.mkdirs()) {
+                throw new IOException("Cannot create user data directory: " + userDataDir.getAbsolutePath());
+            }
+            logger.info("Created Chrome user data directory: " + userDataDir.getAbsolutePath());
+        }
+        
+        return userDataDir.getAbsolutePath();
     }
 
     /**
@@ -123,7 +147,7 @@ public class NoDriver{
             "--no-default-browser-check",
             "--lang=en",
             "--accept-language=en-US,en",
-            "--user-data-dir=nodriverData"
+            "--user-data-dir=" + getUserDataDir()
         );
         
         if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
@@ -162,7 +186,7 @@ public class NoDriver{
             "--no-default-browser-check",
             "--lang=en",
             "--accept-language=en-US,en",
-            "--user-data-dir=nodriverData"
+            "--user-data-dir=" + getUserDataDir()
         );
         
         if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
@@ -345,7 +369,7 @@ public class NoDriver{
             .addParam("expression", js)
             .build();
         var response = socketClient.sendAndWaitResult(2, command);
-        return response.flatMap(r -> CDPCommandBuilder.getJsResult(r));
+        return response.flatMap(CDPCommandBuilder::getJsResult);
     }
 
     /**
@@ -409,6 +433,5 @@ public class NoDriver{
                 logger.warning("Failed to close Chrome tab: " + ex.getMessage());
             }
         }
-        // Cleanup completed
     }
 }

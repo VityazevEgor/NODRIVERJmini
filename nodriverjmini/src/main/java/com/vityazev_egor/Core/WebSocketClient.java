@@ -2,11 +2,11 @@ package com.vityazev_egor.Core;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.vityazev_egor.Core.WaitTask.TimeOutException;
+import com.vityazev_egor.Core.LambdaWaitTask.TimeOutException;
 
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
@@ -25,17 +25,22 @@ import lombok.Setter;
 public class WebSocketClient {
     private Session session;
     private final CustomLogger logger = new CustomLogger(WebSocketClient.class.getName());
-    private List<AwaitedMessage> awaitedMessages = new ArrayList<>();
+    private final ConcurrentHashMap<Integer, AwaitedMessage> awaitedMessages = new ConcurrentHashMap<>();
 
     @Getter
     @Setter
     @NoArgsConstructor
-    private class AwaitedMessage {
-        private Integer id;
+    private static class AwaitedMessage {
         private String message;
-        private Boolean isAccepted = false;
+        private boolean isAccepted = false;
     }
 
+    /**
+     * Creates a new WebSocket client and connects to the specified URL.
+     *
+     * @param url The WebSocket URL to connect to
+     * @throws Exception if the connection fails
+     */
     public WebSocketClient(String url) throws Exception {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         container.setDefaultMaxTextMessageBufferSize(10*1024*1024);
@@ -53,15 +58,13 @@ public class WebSocketClient {
         CDPCommandBuilder.parseIdFromCommand(message).ifPresentOrElse(
             messageId ->{
                 logger.info("Amount of awaited messages = " + awaitedMessages.size());
-                awaitedMessages.stream()
-                        .filter(x -> x.getId().equals(messageId))
-                        .findFirst()
-                        .ifPresent(awaitedMessage -> {
-                            awaitedMessage.setMessage(message);
-                            awaitedMessage.setIsAccepted(true);
-                        });
+                AwaitedMessage awaitedMessage = awaitedMessages.get(messageId);
+                if (awaitedMessage != null) {
+                    awaitedMessage.setMessage(message);
+                    awaitedMessage.setAccepted(true);
+                }
             }, 
-            () -> logger.error("Could not patse id from this message: ")
+            () -> logger.error("Could not parse id from this message: ")
         );
         logger.info(String.format("Received message with content = %s", message.length() > 150 ? message.substring(0, 150) : message));
     }
@@ -74,72 +77,83 @@ public class WebSocketClient {
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
         logger.warning("Connection closed: " + closeReason);
+        awaitedMessages.clear();
     }
 
+    /**
+     * Sends a command and waits for the result with default timeout settings.
+     * Uses a 2-second timeout and 50ms delay between checks.
+     *
+     * @param json The JSON command to send
+     */
     public void sendCommand(String json) {
         sendAndWaitResult(2, json, 50);
     }
 
-    public void sendCommand(String[] jsons){
-        for (String json : jsons) {
-            sendCommand(json);
-        }
-    }
-
-    public void sendCommand(List<String> jsons){
-        for (String json : jsons){
-            sendCommand(json);
-        }
-    }
-
+    /**
+     * Sends a command and waits for the response with custom timeout settings.
+     *
+     * @param timeOutSeconds Maximum time to wait for response in seconds
+     * @param json The JSON command to send
+     * @param delayMilis Delay between response checks in milliseconds
+     * @return Optional containing the response message, or empty if timeout/error occurred
+     */
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json, Integer delayMilis){
-        final AwaitedMessage awaitedMessage = new AwaitedMessage();
+        Integer messageId = null;
         try{
-            Integer messageId = CDPCommandBuilder.parseIdFromCommand(json).orElseThrow(() -> new Exception("Can't parse id of command"));
+            messageId = CDPCommandBuilder.parseIdFromCommand(json).orElseThrow(() -> new Exception("Can't parse id of command"));
             logger.info("Sending message with id = " + messageId.toString());
             
-            //регестрируем ожидание сообщения с определённым id
-            awaitedMessage.setId(messageId);
-            awaitedMessages.add(awaitedMessage);
+            final AwaitedMessage awaitedMessage = new AwaitedMessage();
+            //регистрируем ожидание сообщения с определённым id
+            awaitedMessages.put(messageId, awaitedMessage);
 
             // ждём пока ответ будет получен
-            var task = new WaitTask() {
-
-                @Override
-                public Boolean condition() {
-                    return awaitedMessage.getIsAccepted();
-                }
-                
-            };
+            var task = new LambdaWaitTask(awaitedMessage::isAccepted);
             session.getAsyncRemote().sendText(json);
 
             var result = task.execute(timeOutSeconds, delayMilis);
             if (!result) throw new TimeOutException(String.format("Timeout during execution of task #%d", messageId));
             
             return Optional.of(awaitedMessage.getMessage());
-        }catch (TimeOutException ex){
+        } catch (TimeOutException ex){
             logger.error(ex.getMessage());
             return Optional.empty();
-        } 
-        catch (Exception ex){
+        } catch (Exception ex){
             logger.error("Error in sendAndWaitResult method", ex);
             return Optional.empty();
-        }
-        finally{
-            awaitedMessages.remove(awaitedMessage);
+        } finally {
+            if (messageId != null) {
+                awaitedMessages.remove(messageId);
+            }
         }
     }
 
+    /**
+     * Sends a command and waits for the response with default delay.
+     * Uses 50ms delay between response checks.
+     *
+     * @param timeOutSeconds Maximum time to wait for response in seconds
+     * @param json The JSON command to send
+     * @return Optional containing the response message, or empty if timeout/error occurred
+     */
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
         return sendAndWaitResult(timeOutSeconds, json, 50);
     }
 
+    /**
+     * Closes the WebSocket session and cleans up resources.
+     * Clears all awaited messages to prevent memory leaks.
+     */
     public void closeSession(){
         try {
-            session.close();
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
         } catch (IOException e) {
-            logger.error("Can't close session for some reason....", e);
-            e.printStackTrace();
+            logger.error("Can't close session", e);
+        } finally {
+            awaitedMessages.clear();
         }
     }
     
