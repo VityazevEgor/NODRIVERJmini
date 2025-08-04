@@ -29,6 +29,7 @@ public class WebElement {
     private String getSizeJs;
     private String isExistsJs;
     private String getValueJs;
+    private String removeJs;
 
     private final String elementJs;
     private final NoDriver driver;
@@ -53,6 +54,7 @@ public class WebElement {
         this.getContentJs = elementJs + ".innerHTML";
         this.getTextJs = elementJs + ".innerText";
         this.getValueJs = elementJs + ".value";
+        this.removeJs = elementJs + ".remove();";
     }
 
     /**
@@ -126,6 +128,13 @@ public class WebElement {
      */
     public void getFocus(){
         driver.executeJS(elementJs + ".focus()");
+    }
+
+    /**
+     * Delete element and all his child elements from DOM
+     */
+    public void removeFromDOM(){
+        driver.executeJS(removeJs);
     }
 
     /**

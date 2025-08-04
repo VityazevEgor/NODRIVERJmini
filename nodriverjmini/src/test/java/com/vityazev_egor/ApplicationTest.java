@@ -131,6 +131,17 @@ class ApplicationTest {
     }
 
     @Test
+    void testDeleteElement() throws IOException{
+        var driver = new NoDriver();
+        driver.getNavigation().loadUrlAndWait("https://ya.ru/", 10);
+        var searchInput = driver.findElement(By.className("search3__inner"));
+        searchInput.removeFromDOM();
+        assertTrue(searchInput.isExists() == false);
+        Shared.sleep(2000);
+        driver.exit();
+    }
+
+    @Test
     void exampleUsage() {
         try {
             // Initialize a new NoDriver instance
