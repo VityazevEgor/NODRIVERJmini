@@ -115,7 +115,7 @@ public class NoDriver{
      */
     private String getUserDataDir() throws IOException {
         // Get current working directory (where the program is running)
-        String currentDir = System.getProperty("user.dir");
+        String currentDir = System.getProperty("user.home");
         File userDataDir = new File(currentDir, "nodriverData");
         
         // Create directory if it doesn't exist
