@@ -24,6 +24,14 @@ public abstract class By {
         return new ByName(name);
     }
 
+    public static By text(String text) {
+        return new ByText(text);
+    }
+
+    public static By textContains(String text) {
+        return new ByTextContains(text);
+    }
+
     private static class ById extends By {
         private final String elementJs;
 
@@ -93,6 +101,68 @@ public abstract class By {
         @Override
         public String getMultiJavaScript() {
             return String.format("document.getElementsByName('%s')", replaceQuotes(name));
+        }
+    }
+
+    private static class ByText extends By {
+        private final String text;
+
+        public ByText(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public String getJavaScript() {
+            return String.format(
+                "(function(){var target='%s';var elements=Array.from(document.querySelectorAll('body *'));"
+                    + "var matches=elements.filter(function(el){var t=el.textContent;if(t==null){return false;}t=t.trim();"
+                    + "return t===target;});"
+                    + "var result=matches.filter(function(el){return !matches.some(function(other){return other!==el && el.contains(other);});});"
+                    + "return result[0];})()",
+                replaceQuotes(text)
+            );
+        }
+
+        @Override
+        public String getMultiJavaScript() {
+            return String.format(
+                "(function(){var target='%s';var elements=Array.from(document.querySelectorAll('body *'));"
+                    + "var matches=elements.filter(function(el){var t=el.textContent;if(t==null){return false;}t=t.trim();"
+                    + "return t===target;});"
+                    + "return matches.filter(function(el){return !matches.some(function(other){return other!==el && el.contains(other);});});})()",
+                replaceQuotes(text)
+            );
+        }
+    }
+
+    private static class ByTextContains extends By {
+        private final String text;
+
+        public ByTextContains(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public String getJavaScript() {
+            return String.format(
+                "(function(){var target='%s';var elements=Array.from(document.querySelectorAll('body *'));"
+                    + "var matches=elements.filter(function(el){var t=el.textContent;if(t==null){return false;}t=t.trim();"
+                    + "return t.indexOf(target)!==-1;});"
+                    + "var result=matches.filter(function(el){return !matches.some(function(other){return other!==el && el.contains(other);});});"
+                    + "return result[0];})()",
+                replaceQuotes(text)
+            );
+        }
+
+        @Override
+        public String getMultiJavaScript() {
+            return String.format(
+                "(function(){var target='%s';var elements=Array.from(document.querySelectorAll('body *'));"
+                    + "var matches=elements.filter(function(el){var t=el.textContent;if(t==null){return false;}t=t.trim();"
+                    + "return t.indexOf(target)!==-1;});"
+                    + "return matches.filter(function(el){return !matches.some(function(other){return other!==el && el.contains(other);});});})()",
+                replaceQuotes(text)
+            );
         }
     }
 }
