@@ -60,13 +60,22 @@ public class NoDriver{
     @Getter
     private final Misc misc;
 
-    public NoDriver(String socks5Proxy, Boolean enableHeadless) throws IOException{
+    /**
+     * Creates a new driver instance with the provided options.
+     *
+     * @param options Configuration for window size, proxy, and headless mode.
+     * @throws IOException if Chrome cannot be started
+     */
+    public NoDriver(NoDriverOptions options) throws IOException{
+        if (options == null) {
+            options = new NoDriverOptions();
+        }
         this.isWindows = isWindowsOS();
         
         if (isWindows) {
-            chrome = launchChromeWindows(socks5Proxy, enableHeadless);
+            chrome = launchChromeWindows(options);
         } else {
-            chrome = launchChromeLinux(socks5Proxy, enableHeadless);
+            chrome = launchChromeLinux(options);
         }
 
         CountDownLatch initLatch = new CountDownLatch(1);
@@ -132,17 +141,16 @@ public class NoDriver{
     /**
      * Launches Chrome browser on Linux using google-chrome command.
      *
-     * @param socks5Proxy SOCKS5 proxy configuration (optional)
-     * @param enableHeadless whether to run Chrome in headless mode
+     * @param options Configuration for window size, proxy, and headless mode.
      * @return Process object representing the Chrome browser process
      * @throws IOException if Chrome cannot be started
      */
-    private Process launchChromeLinux(String socks5Proxy, Boolean enableHeadless) throws IOException {
+    private Process launchChromeLinux(NoDriverOptions options) throws IOException {
         ProcessBuilder browser = new ProcessBuilder(
             "google-chrome", 
             "--remote-debugging-port=9222", 
             "--remote-allow-origins=*", 
-            "--window-size=1280,1060",
+            String.format("--window-size=%d,%d", options.getWindowWidth(), options.getWindowHeight()),
             "--no-first-run",
             "--no-default-browser-check",
             "--lang=en",
@@ -150,12 +158,15 @@ public class NoDriver{
             "--user-data-dir=" + getUserDataDir()
         );
         
-        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
-            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        if (options.getSocks5Proxy() != null && !options.getSocks5Proxy().isEmpty()) {
+            browser.command().add("--proxy-server=socks5://" + options.getSocks5Proxy());
         }
         
-        if (enableHeadless) {
+        if (options.isHeadless()) {
             browser.command().add("--headless");
+        }
+        if (options.isFullScreen()) {
+            browser.command().add("--start-fullscreen");
         }
 
         if (System.getProperty("user.name").contains("root")) {
@@ -169,19 +180,18 @@ public class NoDriver{
     /**
      * Launches Chrome browser on Windows using chrome.exe from common installation paths.
      *
-     * @param socks5Proxy SOCKS5 proxy configuration (optional)
-     * @param enableHeadless whether to run Chrome in headless mode
+     * @param options Configuration for window size, proxy, and headless mode.
      * @return Process object representing the Chrome browser process
      * @throws IOException if Chrome cannot be started
      */
-    private Process launchChromeWindows(String socks5Proxy, Boolean enableHeadless) throws IOException {
+    private Process launchChromeWindows(NoDriverOptions options) throws IOException {
         String chromeExecutable = findChromeExecutableWindows();
         
         ProcessBuilder browser = new ProcessBuilder(
             chromeExecutable,
             "--remote-debugging-port=9222", 
             "--remote-allow-origins=*", 
-            "--window-size=1280,1060",
+            String.format("--window-size=%d,%d", options.getWindowWidth(), options.getWindowHeight()),
             "--no-first-run",
             "--no-default-browser-check",
             "--lang=en",
@@ -189,12 +199,15 @@ public class NoDriver{
             "--user-data-dir=" + getUserDataDir()
         );
         
-        if (socks5Proxy != null && !socks5Proxy.isEmpty()) {
-            browser.command().add("--proxy-server=socks5://" + socks5Proxy);
+        if (options.getSocks5Proxy() != null && !options.getSocks5Proxy().isEmpty()) {
+            browser.command().add("--proxy-server=socks5://" + options.getSocks5Proxy());
         }
         
-        if (enableHeadless) {
+        if (options.isHeadless()) {
             browser.command().add("--headless");
+        }
+        if (options.isFullScreen()) {
+            browser.command().add("--start-fullscreen");
         }
         
         browser.redirectErrorStream(true);
@@ -223,14 +236,6 @@ public class NoDriver{
         }
         
         throw new IOException("Chrome executable not found. Please ensure Chrome is installed.");
-    }
-
-    public NoDriver() throws IOException{
-        this(null, false);
-    }
-
-    public NoDriver(String socks5Proxy) throws IOException{
-        this(socks5Proxy, false);
     }
 
     // find web socket url to control new tab of chrome
