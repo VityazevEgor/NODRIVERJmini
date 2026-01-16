@@ -20,7 +20,7 @@ class ApplicationTest {
 
     @Test
     void testCFBypassXDO() throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions().setSocks5Proxy("127.0.0.1:2080"));
+        NoDriver d = new NoDriver(NoDriverOptions.builder().setSocks5Proxy("127.0.0.1:2080").build());
         d.getXdo().calibrate();
         Boolean result = d.getNavigation().loadUrlAndBypassCFXDO("https://nopecha.com/demo/cloudflare", 5, 30);
         d.exit();
@@ -29,7 +29,7 @@ class ApplicationTest {
 
     @Test
     void testCFBypassCDP()throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         Boolean result = d.getNavigation().loadUrlAndBypassCFCDP("https://nopecha.com/demo/cloudflare", 10, 30);
         d.exit();
         assertTrue(result);
@@ -37,7 +37,7 @@ class ApplicationTest {
 
     @Test
     void testAntiBot() throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions().setSocks5Proxy("127.0.0.1:2080"));
+        NoDriver d = new NoDriver(NoDriverOptions.builder().setSocks5Proxy("127.0.0.1:2080").build());
         Boolean result = d.getNavigation().loadUrlAndWait("https://bot.sannysoft.com/", 10);
         d.getMisc().captureScreenshot(Paths.get("antibot.png"));
         d.exit();
@@ -46,7 +46,7 @@ class ApplicationTest {
 
     @Test
     void testAntiBot2() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver(new NoDriverOptions().setSocks5Proxy("127.0.0.1:2080"));
+        NoDriver d = new NoDriver(NoDriverOptions.builder().setSocks5Proxy("127.0.0.1:2080").build());
         Boolean result = d.getNavigation().loadUrlAndWait("https://www.browserscan.net/bot-detection", 10);
         Thread.sleep(2000);
         d.getMisc().captureScreenshot(Paths.get("antibot.png"));
@@ -56,7 +56,7 @@ class ApplicationTest {
 
     @Test
     void testViewPort() throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         var dm = d.getViewPortSize();
         System.out.println("Dimesion viewport= "+dm.get().getWidth() + ":"+dm.get().getHeight());
         d.exit();
@@ -65,7 +65,7 @@ class ApplicationTest {
 
     @Test
     void testLoadAndWait() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         Boolean result = d.getNavigation().loadUrlAndWait("https://bing.com", 10);
         Boolean result2 = d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         d.exit();
@@ -76,7 +76,7 @@ class ApplicationTest {
     @Test
     void testTextEntering() throws IOException, InterruptedException
     {
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         var input = d.findElement(By.id("text"));
         d.getInput().enterText(input, "Test");
@@ -86,7 +86,7 @@ class ApplicationTest {
 
     @Test
     void testInsertText() throws IOException, InterruptedException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         d.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         var input = d.findElement(By.id("text"));
         d.getInput().insertText(input, "Test");
@@ -96,8 +96,7 @@ class ApplicationTest {
 
     @Test
     void findElementByText() throws IOException, InterruptedException {
-        var options = new NoDriverOptions();
-        options.setFullScreen(true);
+        var options = NoDriverOptions.builder().setFullScreen(true).build();
         NoDriver d = new NoDriver(options);
         d.getNavigation().loadUrlAndWait("https://tengrinews.kz/", 5);
         var element = d.findElement(By.text("Новости"));
@@ -120,12 +119,12 @@ class ApplicationTest {
 
     @Test
     void testMultiTabs() throws IOException{
-        NoDriver firstTab = new NoDriver(new NoDriverOptions());
+        NoDriver firstTab = new NoDriver(NoDriverOptions.builder().build());
         firstTab.getXdo().calibrate();
         firstTab.getNavigation().loadUrlAndWait("https://ya.ru", 10);
         System.out.println("Loaded yandex");
 
-        NoDriver secondTab = new NoDriver(new NoDriverOptions());
+        NoDriver secondTab = new NoDriver(NoDriverOptions.builder().build());
         secondTab.getNavigation().loadUrlAndWait("https://bing.com", 10);
         System.out.println("Loaded bing");
 
@@ -137,7 +136,7 @@ class ApplicationTest {
 
     @Test
     void testJs() throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         var title = d.getTitle();
         d.exit();
         assertTrue(title.isPresent());
@@ -146,7 +145,7 @@ class ApplicationTest {
 
     @Test
     void testGetCurrentUrl() throws IOException{
-        NoDriver d = new NoDriver(new NoDriverOptions());
+        NoDriver d = new NoDriver(NoDriverOptions.builder().build());
         d.getNavigation().loadUrlAndWait("https://google.com", 10);
         var currentUrl = d.getCurrentUrl();
         d.exit();
@@ -157,7 +156,7 @@ class ApplicationTest {
 
     @Test
     void testDeleteElement() throws IOException{
-        var driver = new NoDriver(new NoDriverOptions());
+        var driver = new NoDriver(NoDriverOptions.builder().build());
         driver.getNavigation().loadUrlAndWait("https://ya.ru/", 10);
         var searchInput = driver.findElement(By.className("search3__inner"));
         searchInput.removeFromDOM();
@@ -171,7 +170,7 @@ class ApplicationTest {
     void exampleUsage() {
         try {
             // Initialize a new NoDriver instance
-            NoDriver driver = new NoDriver(new NoDriverOptions());
+            NoDriver driver = new NoDriver(NoDriverOptions.builder().build());
 
             // Load the URL "https://google.com" and wait for it to fully load
             driver.getNavigation().loadUrlAndWait("https://google.com", 10);

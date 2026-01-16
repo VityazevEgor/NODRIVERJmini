@@ -12,7 +12,7 @@ import java.nio.file.Path;
 public class Application {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        NoDriver driver = new NoDriver(new NoDriverOptions());
+        NoDriver driver = new NoDriver(NoDriverOptions.builder().build());
         driver.getXdo().calibrate();
         driver.getNavigation().loadUrlAndWait("https://pastebin.com/", 10);
         var input = driver.findElement(By.id("postform-text"));

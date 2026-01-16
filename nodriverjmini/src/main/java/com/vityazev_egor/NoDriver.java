@@ -68,7 +68,7 @@ public class NoDriver{
      */
     public NoDriver(NoDriverOptions options) throws IOException{
         if (options == null) {
-            options = new NoDriverOptions();
+            options = NoDriverOptions.builder().build();
         }
         this.isWindows = isWindowsOS();
         
