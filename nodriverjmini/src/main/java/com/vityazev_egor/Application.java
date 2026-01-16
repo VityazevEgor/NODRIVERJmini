@@ -14,9 +14,13 @@ public class Application {
     public static void main(String[] args) throws IOException, InterruptedException {
         NoDriver driver = new NoDriver();
         driver.getXdo().calibrate();
-        driver.getNavigation().loadUrlAndWait("https://ya.ru", 10);
-        var input = driver.findElement(By.id("text"));
-        input.getPosition().ifPresent(point -> driver.getXdo().click(point.getX(), point.getY()));
+        driver.getNavigation().loadUrlAndWait("https://pastebin.com/", 10);
+        var input = driver.findElement(By.id("postform-text"));
+        String code = """
+                for i in range (0,10):
+                    print (i)
+                """;
+        driver.getInput().insertText(input, code);
         waitEnter();
         driver.exit();
     }

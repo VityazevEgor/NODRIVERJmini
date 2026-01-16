@@ -479,7 +479,7 @@ public class XDO {
             }
             return true; // Continue enumeration
         };
-        
+
         com.sun.jna.platform.win32.User32.INSTANCE.EnumWindows(enumProc, null);
         return foundWindow[0];
     }

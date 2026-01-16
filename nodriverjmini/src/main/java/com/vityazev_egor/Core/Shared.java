@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Shared {
-    private static CustomLogger logger = new CustomLogger(Shared.class.getName());
+    private static final CustomLogger logger = new CustomLogger(Shared.class.getName());
     public static void sleep(long milis){
         try {
             Thread.sleep(milis);

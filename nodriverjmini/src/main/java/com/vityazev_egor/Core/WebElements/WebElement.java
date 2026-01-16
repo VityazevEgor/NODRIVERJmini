@@ -205,4 +205,23 @@ public class WebElement {
         if (!waitTask.execute(timeOutSeconds, delayMilis))
             throw new Exception("Element not found: " + elementJs);
     }
+
+    /**
+     * Scrolls the page to bring this element into view.
+     * Uses the browser's native scrollIntoView() method.
+     *
+     * @param alignToTop If true, the top of the element will be aligned to the top of the visible area.
+     *                   If false, the bottom of the element will be aligned to the bottom of the visible area.
+     */
+    public void scrollIntoView(boolean alignToTop) {
+        String scrollJs = elementJs + ".scrollIntoView(" + alignToTop + ")";
+        driver.executeJS(scrollJs);
+    }
+
+    /**
+     * Scrolls the page to bring this element into view with default behavior (align to top).
+     */
+    public void scrollIntoView() {
+        scrollIntoView(true);
+    }
 }
