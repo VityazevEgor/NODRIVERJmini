@@ -9,8 +9,6 @@ import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.WebElements.WebElement;
 
 public class Input {
-    private static final int INSERT_TEXT_CHUNK_SIZE = 200;
-
     private final NoDriver driver;
     private final CustomLogger logger;
 
@@ -138,17 +136,9 @@ public class Input {
      */
     public void insertText(WebElement element, String text){
         element.getFocus();
-        if (text == null || text.isEmpty()) {
-            return;
-        }
-
-        for (int start = 0; start < text.length(); start += INSERT_TEXT_CHUNK_SIZE) {
-            int end = Math.min(start + INSERT_TEXT_CHUNK_SIZE, text.length());
-            String chunk = text.substring(start, end);
-            String command = CDPCommandBuilder.create("Input.insertText")
-                .addParam("text", chunk)
-                .build();
-            driver.getSocketClient().sendCommand(command);
-        }
+        String command = CDPCommandBuilder.create("Input.insertText")
+            .addParam("text", text)
+            .build();
+        driver.getSocketClient().sendCommand(command);
     }
 }
