@@ -55,16 +55,15 @@ public class WebSocketClient {
 
     @OnMessage
     public void onMessage(String message) {
-        CDPCommandBuilder.parseIdFromCommand(message).ifPresentOrElse(
-            messageId ->{
+        CDPCommandBuilder.parseIdFromCommand(message).ifPresent(
+            messageId -> {
                 logger.info("Amount of awaited messages = " + awaitedMessages.size());
                 AwaitedMessage awaitedMessage = awaitedMessages.get(messageId);
                 if (awaitedMessage != null) {
                     awaitedMessage.setMessage(message);
                     awaitedMessage.setAccepted(true);
                 }
-            }, 
-            () -> logger.error("Could not parse id from this message: ")
+            }
         );
         logger.info(String.format("Received message with content = %s", message.length() > 150 ? message.substring(0, 150) : message));
     }
@@ -82,12 +81,12 @@ public class WebSocketClient {
 
     /**
      * Sends a command and waits for the result with default timeout settings.
-     * Uses a 2-second timeout and 50ms delay between checks.
+     * Uses a 2-second timeout and 150ms delay between checks.
      *
      * @param json The JSON command to send
      */
     public void sendCommand(String json) {
-        sendAndWaitResult(2, json, 50);
+        sendAndWaitResult(2, json, 150);
     }
 
     /**
@@ -131,14 +130,14 @@ public class WebSocketClient {
 
     /**
      * Sends a command and waits for the response with default delay.
-     * Uses 50ms delay between response checks.
+     * Uses 150ms delay between response checks.
      *
      * @param timeOutSeconds Maximum time to wait for response in seconds
      * @param json The JSON command to send
      * @return Optional containing the response message, or empty if timeout/error occurred
      */
     public Optional<String> sendAndWaitResult(Integer timeOutSeconds, String json){
-        return sendAndWaitResult(timeOutSeconds, json, 50);
+        return sendAndWaitResult(timeOutSeconds, json, 150);
     }
 
     /**

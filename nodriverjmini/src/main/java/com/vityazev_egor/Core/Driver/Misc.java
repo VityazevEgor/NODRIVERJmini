@@ -3,19 +3,14 @@ package com.vityazev_egor.Core.Driver;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.apache.commons.imaging.Imaging;
 
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.CDPCommandBuilder;
 import com.vityazev_egor.Core.CustomLogger;
-import com.vityazev_egor.Core.Shared;
-import com.vityazev_egor.Core.WaitTask;
-import com.vityazev_egor.Core.WebElements.By;
 
 public class Misc {
     private final NoDriver driver;

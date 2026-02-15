@@ -7,7 +7,7 @@ setlocal enabledelayedexpansion
 
 set "GROUP_ID=com.vityazev_egor"
 set "ARTIFACT_ID=nodriverjmini"
-set "VERSION=1.2"
+set "VERSION=1.3"
 
 :: Specify the version suffix, as in the file name, for example, "-SNAPSHOT"
 set "FILE_VERSION=%VERSION%-SNAPSHOT"

@@ -4,7 +4,6 @@ import com.vityazev_egor.Core.WebElements.WebElement;
 import org.junit.jupiter.api.Test;
 
 import com.vityazev_egor.Core.Shared;
-import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 
 class ApplicationTest {
 

@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.util.Scanner;
 import javax.imageio.*;
 
-import com.vityazev_egor.Core.WaitTask;
 import com.vityazev_egor.Core.WebElements.By;
-
-import java.nio.file.Path;
 
 public class Application {
 

@@ -1,14 +1,9 @@
 package com.vityazev_egor.Core.WebElements;
 
-import java.awt.image.BufferedImage;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.Optional;
 
 import com.vityazev_egor.Core.CustomLogger;
 import com.vityazev_egor.Core.LambdaWaitTask;
-import org.apache.commons.imaging.Imaging;
 
 import java.awt.*;
 
@@ -16,7 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vityazev_egor.NoDriver;
 import com.vityazev_egor.Core.Shared;
-import com.vityazev_egor.Core.WaitTask;
 
 public class WebElement {
     private final ObjectMapper mapper = new ObjectMapper();
